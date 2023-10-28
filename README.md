@@ -18,7 +18,6 @@ import {Option, Some, None} from "ca-ts";
 
 ## `Result`
 
-Don't worry about async anymore.
 
 ```typescript
 import { crash, AsyncResult, Ok, AsyncOk, Err } from "ca-ts";
@@ -37,8 +36,8 @@ const randomPicAsyncResult: AsyncResult<ArrayBuffer, string | Error | unknown> =
     // Now we have a Result<number, string>
 
     .attemptMap((x) => (x === 1 ? crash("One is not allowed.") : x)) // -> Sync
-    // Now things got nastier, we have Result<number, string | unknown>, attemptMap is a bad boy. Use
-    // flatMap instead for cleaner types.
+    // Now things got nastier, we have Result<number, string | unknown>, attemptMap is a bad
+    // boy. Use flatMap instead for cleaner types.
 
     .attemptMap((x) => fetch(`https://example.com/${x}`)) // -> Async
     .mapError(async (error_) => {
@@ -54,13 +53,13 @@ const randomPicAsyncResult: AsyncResult<ArrayBuffer, string | Error | unknown> =
 // Use it
 const randomPicResult = await randomPicAsyncResult;
 if (randomPicResult.ok) {
-    // ...randomPicResult.value is a Buffer
+    // ...randomPicResult.value is an ArrayBuffer
 } else {
-    // ...randomPicResult.error is an Error
+    // ...randomPicResult.error is an string | Error | unknown
 }
 
 // Or mess with it, I wouldn't recommend it though
 const isOk = await randomPicAsyncResult.ok; // -> boolean
-const value = await randomPicAsyncResult.value; // -> Option<Buffer>
-const error = await randomPicAsyncResult.error; // -> Option<Error>
+const value = await randomPicAsyncResult.value; // -> Option<ArrayBuffer>
+const error = await randomPicAsyncResult.error; // -> Option<string | Error | unknown>
 ```
