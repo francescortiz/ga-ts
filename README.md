@@ -3,9 +3,17 @@
 ## `crash`
 
 ```typescript
-import {crash} from "pacots";
+import {crash} from "ca-ts";
 
 const a = condition === true ? 1 : crash("This should never happen.");
+```
+
+## `Option`
+
+```typescript
+import {Option, Some, None} from "ca-ts";
+
+
 ```
 
 ## `Result`
@@ -13,39 +21,46 @@ const a = condition === true ? 1 : crash("This should never happen.");
 Don't worry about async anymore.
 
 ```typescript
-import { crash, Result } from "pacots";
+import { crash, AsyncResult, Ok, AsyncOk, Err } from "ca-ts";
 import { inspect } from "util";
 
-const firstOne: Result<number, Error> = Ok(Math.random());
-const secondOne: Result<number, Error> = Ok(() => Math.random());
-const thirdOne: AsyncResult<number, Error> = Ok(Promise.resolve(Math.random()));
-const fourthOne: AsyncResult<number, Error> = Ok(async () => Promise.resolve(Math.random()));
+const firstOne: Result<number, never> = Ok(Math.random());
+const secondOne: AsyncResult<number, never> = AsyncOk(Promise.resolve(Math.random()));
 
-const chosenOne = [firstOne, secondOne, thirdOne, fourthOne][Math.floow(Math.random() * 4)];
+const chosenOne = [firstOne, secondOne][Math.floor(Math.random() * 2)];
 
-const randomPicResult: Result<Buffer, Error> = chosenOne
+const randomPicAsyncResult: AsyncResult<ArrayBuffer, string | Error | unknown> = chosenOne!
     .map((x) => Math.floor(x * 100)) // -> Sync
-    .map((x) => x === 0 ? throw new Error("Zero is not allowed.") : x) // -> Sync
-    .map((x) => x === 1 ? crash("One is not allowed.") : x) // -> Sync
-    .map((x) => fetch(`https://example.com/${x}`)) // -> Async
-    .mapErr(async (err) => {
-        const error = new Error("Failed to fetch", {cause: err});
-        await fetch("https://example.com/error", {method: "POST", body: inspect(error, {depth: null})})
+    // Up until this point we have a Result<number, never>
+
+    .flatMap((x) => (x === 0 ? Err("Zero is not allowed.") : Ok(x))) // -> Sync
+    // Now we have a Result<number, string>
+
+    .attemptMap((x) => (x === 1 ? crash("One is not allowed.") : x)) // -> Sync
+    // Now things got nastier, we have Result<number, string | unknown>, attemptMap is a bad boy. Use
+    // flatMap instead for cleaner types.
+
+    .attemptMap((x) => fetch(`https://example.com/${x}`)) // -> Async
+    .mapError(async (error_) => {
+        const error = new Error(`Failed to fetch ${(error_ as Error)?.message || error_}`);
+        await fetch("https://example.com/error", {
+            method: "POST",
+            body: inspect(error, { depth: null }),
+        });
         return error;
     }) // -> Async
-    .map((x) => x.arrayBuffer()) // -> Sync
-
+    .map((x) => x.arrayBuffer()); // -> Sync
 
 // Use it
-const randomPic = await randomPicResult;
-if (randomPic.ok) {
-    // ...randomPic.val is a Buffer
+const randomPicResult = await randomPicAsyncResult;
+if (randomPicResult.ok) {
+    // ...randomPicResult.value is a Buffer
 } else {
-    // ...randomPic.err is an Error
+    // ...randomPicResult.error is an Error
 }
 
 // Or mess with it, I wouldn't recommend it though
-const isOk = await randomPicResult.ok; // -> boolean
-const value = await randomPicResult.val; // -> Option<Buffer>
-const error = await randomPicResult.err; // -> Option<Error>
+const isOk = await randomPicAsyncResult.ok; // -> boolean
+const value = await randomPicAsyncResult.value; // -> Option<Buffer>
+const error = await randomPicAsyncResult.error; // -> Option<Error>
 ```

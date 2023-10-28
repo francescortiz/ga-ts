@@ -1,6 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { AsyncErr, AsyncOk, Err, Ok } from "./result";
+import { AsyncErr, AsyncOk, AsyncResult, Err, Ok, Result } from "./result";
 import { None, Some } from "./option";
+import { crash } from "./crash";
+import { inspect } from "util";
 
 describe("result.ts", () => {
     describe("map", () => {
@@ -127,18 +129,18 @@ describe("result.ts", () => {
         });
     });
 
-    describe("andThen", () => {
-        it("ok andThen sync ok", () => {
+    describe("flatMap", () => {
+        it("ok flatMap sync ok", () => {
             const start = Ok(12);
-            const result = start.andThen((x) => Ok(x + 1));
+            const result = start.flatMap((x) => Ok(x + 1));
 
             expect(result.value).toBe(13);
             expect(result.error).toBeUndefined();
         });
 
-        it("async ok andThen ok", async () => {
+        it("async ok flatMap ok", async () => {
             const start = AsyncOk(Promise.resolve(12));
-            const result = start.andThen((x) => Promise.resolve(Ok(x + 1)));
+            const result = start.flatMap((x) => Promise.resolve(Ok(x + 1)));
 
             expect(await result.value).toEqual(Some(13));
             expect(await result.error).toEqual(None);
@@ -147,6 +149,102 @@ describe("result.ts", () => {
 
             expect(awaitedResult.value).toBe(13);
             expect(awaitedResult.error).toBeUndefined();
+        });
+    });
+
+    describe("other tests", () => {
+        it("runs readme code", async () => {
+            const firstOne: Result<number, Error> = Ok(1);
+
+            {
+                const randomPicAsyncResult: AsyncResult<string, Error> = firstOne
+                    .map((x) => Math.floor(x * 100)) // -> Sync
+                    .attemptMap((x) => (x === 200 ? crash("One is not allowed.") : x)) // -> Sync
+                    .mapError(async (error_) => {
+                        const error = new Error(
+                            `Failed to fetch: ${inspect(error_, { depth: null })}`,
+                        );
+                        await fetch("https://example.com/error", {
+                            method: "POST",
+                            body: inspect(error, { depth: null }),
+                        });
+                        return error;
+                    }) // -> Async
+                    .map((x) => x + " loco"); // -> Sync
+
+                // Use it
+                const randomPicResult = await randomPicAsyncResult;
+                expect(randomPicResult.ok).toEqual(true);
+                expect(randomPicResult.value).toEqual("100 loco");
+            }
+        });
+        it("runs readme code on error", async () => {
+            const firstOne: Result<number, Error> = Ok(1);
+            const secondOne: AsyncResult<number, Error> = AsyncOk(Promise.resolve(2));
+
+            {
+                const randomPicAsyncResult: AsyncResult<string, Error> = firstOne
+                    .map((x) => Math.floor(x * 100)) // -> Sync
+                    .attemptMap((x) => (x === 200 ? crash("One is not allowed.") : x)) // -> Sync
+                    .mapError(async (error_) => {
+                        const error = new Error(
+                            `Failed to fetch: ${inspect(error_, { depth: null })}`,
+                        );
+                        await fetch("https://example.com/error", {
+                            method: "POST",
+                            body: inspect(error, { depth: null }),
+                        });
+                        return error;
+                    }) // -> Async
+                    .map((x) => x + " loco"); // -> Sync
+
+                // Use it
+                const randomPicResult = await randomPicAsyncResult;
+                expect(randomPicResult.ok).toEqual(true);
+                expect(randomPicResult.value).toEqual("100 loco");
+            }
+            {
+                const randomPicAsyncResult: AsyncResult<string, Error> = secondOne
+                    .map((x) => Math.floor(x * 100)) // -> Sync
+                    .attemptMap((x) => (x === 200 ? crash("One is not allowed.") : x)) // -> Sync
+                    .mapError(async (error_) => {
+                        const error = new Error(`Failed to fetch: ${(error_ as Error)?.message}`);
+                        await fetch("https://example.com/error", {
+                            method: "POST",
+                            body: inspect(error, { depth: null }),
+                        });
+                        return error;
+                    }) // -> Async
+                    .map((x) => x + " loco"); // -> Sync
+
+                // Use it
+                const randomPicResult = await randomPicAsyncResult;
+                expect(randomPicResult.ok).toEqual(false);
+                expect(inspect(randomPicResult.error.message)).toEqual(
+                    "'Failed to fetch: One is not allowed.'",
+                );
+            }
+            {
+                const randomPicAsyncResult: AsyncResult<string, Error> = secondOne
+                    .map((x) => Math.floor(x * 100)) // -> Sync
+                    .attemptMap(() => Promise.reject("failing promise")) // -> Sync
+                    .mapError(async (error_) => {
+                        const error = new Error(`Failed to fetch: ${error_}`);
+                        await fetch("https://example.com/error", {
+                            method: "POST",
+                            body: inspect(error, { depth: null }),
+                        });
+                        return error;
+                    }) // -> Async
+                    .map((x) => x + " loco"); // -> Sync
+
+                // Use it
+                const randomPicResult = await randomPicAsyncResult;
+                expect(randomPicResult.ok).toEqual(false);
+                expect(inspect(randomPicResult.error.message)).toEqual(
+                    "'Failed to fetch: failing promise'",
+                );
+            }
         });
     });
 });
