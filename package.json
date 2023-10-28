@@ -1,16 +1,21 @@
 {
   "name": "ca-ts",
-  "version": "1.0.0",
-  "description": "",
-  "main": "src/index.ts",
+  "version": "0.1.0",
+  "description": "Ca-ts (pronounced cats) is a set of utility functions and types that can be quite useful.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "clean": "rm -r dist ; rm tsconfig.tsbuildinfo",
-    "build": "tsc",
+    "build": "tsup",
     "test": "jest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["typecsript", "async",  "utils", "functional", "fp"],
+  "author": "Francesc Ortiz <francescortiz@gmail.com>",
+  "license": "MIT",
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/node": "20.8.8",
@@ -21,6 +26,7 @@
     "prettier": "3.0.3",
     "ts-jest": "29.1.1",
     "ts-node": "^10.9.1",
+    "tsup": "^7.2.0",
     "typescript": "5.2.2"
   }
 }
