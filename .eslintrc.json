@@ -1,0 +1,36 @@
+{
+    "ignorePatterns": ["/**/*.js", "/**/node_modules/*", "/**/*.t.ts"],
+    "parserOptions": {
+        "ecmaVersion": 2020,
+        "project": "./tsconfig.json",
+        "sourceType": "module",
+        "createDefaultProgram": true
+    },
+    "overrides": [
+        {
+            "files": ["**/*.ts", "**/*.tsx"]
+        }
+    ],
+    "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+    "plugins": ["@typescript-eslint"],
+    "rules": {
+        "no-console": "error",
+        "no-duplicate-imports": "off",
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-misused-promises": "error",
+        "@typescript-eslint/no-floating-promises": [
+            "error",
+            {
+                "ignoreIIFE": true
+            }
+        ],
+        "require-await": "off",
+        "@typescript-eslint/require-await": "error",
+        "@typescript-eslint/await-thenable": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        "@typescript-eslint/no-namespace": "off",
+        "@typescript-eslint/no-inferrable-types": "off",
+        "@typescript-eslint/explicit-function-return-type": "error"
+    },
+    "root": true
+}
