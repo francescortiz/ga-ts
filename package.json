@@ -1,6 +1,6 @@
 {
   "name": "ga-ts",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "homepage": "https://github.com/francescortiz/ga-ts",
   "description": "Ga-ts (pronounced gats) is a set of utility functions and types that can be quite useful.",
   "main": "./dist/index.js",
