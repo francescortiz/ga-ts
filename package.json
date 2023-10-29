@@ -1,7 +1,8 @@
 {
-  "name": "ca-ts",
-  "version": "0.1.0",
-  "description": "Ca-ts (pronounced cats) is a set of utility functions and types that can be quite useful.",
+  "name": "ga-ts",
+  "version": "0.1.1",
+  "homepage": "https://github.com/francescortiz/ga-ts",
+  "description": "Ga-ts (pronounced gats) is a set of utility functions and types that can be quite useful.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

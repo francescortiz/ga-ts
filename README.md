@@ -1,9 +1,9 @@
-# ca-ta
+# ga-ta
 
 ## `crash`
 
 ```typescript
-import {crash} from "ca-ts";
+import {crash} from "ga-ts";
 
 const a = condition === true ? 1 : crash("This should never happen.");
 ```
@@ -11,7 +11,7 @@ const a = condition === true ? 1 : crash("This should never happen.");
 ## `Option`
 
 ```typescript
-import {Option, Some, None} from "ca-ts";
+import {Option, Some, None} from "ga-ts";
 
 
 ```
@@ -20,7 +20,7 @@ import {Option, Some, None} from "ca-ts";
 
 
 ```typescript
-import { crash, AsyncResult, Ok, AsyncOk, Err } from "ca-ts";
+import { crash, AsyncResult, Ok, AsyncOk, Err } from "ga-ts";
 import { inspect } from "util";
 
 const firstOne: Result<number, never> = Ok(Math.random());
