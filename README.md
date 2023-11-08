@@ -1,4 +1,4 @@
-# ga-ta
+# ga-ts
 
 ## On the absence of `unwrap` and unsafe methods
 
@@ -54,10 +54,6 @@ if (!flagOption.some) {
 
 // The flag is set, use it.
 const flag = flagOption.value;
-```
-
-
-
 ```
 
 ### `Result`
