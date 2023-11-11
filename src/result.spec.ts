@@ -151,6 +151,40 @@ describe("result.ts", () => {
             expect(awaitedResult.error).toBeUndefined();
         });
     });
+    describe("Task", () => {
+        it("task and function throws", () => {
+            const division = ({
+                numerator,
+                denominator,
+            }: {
+                numerator: bigint;
+                denominator: bigint;
+            }) => numerator / denominator;
+
+            const start = Ok({ numerator: 2n, denominator: 0n });
+
+            const result = start.task(division, (err: unknown) => Err("Division by zero!"));
+
+            expect(result.error).toBe("Division by zero!");
+        });
+
+        it("task and function returns", async () => {
+            const division = ({
+                numerator,
+                denominator,
+            }: {
+                numerator: bigint;
+                denominator: bigint;
+            }) => numerator / denominator;
+
+            const start = Ok({ numerator: 2n, denominator: 2n });
+
+            const result = start.task(division, (err: unknown) => Err("Division by zero!"));
+
+            expect(result.value).toBe(1n);
+            expect(result.error).toBeUndefined();
+        });
+    });
 
     describe("other tests", () => {
         it("runs readme code", async () => {

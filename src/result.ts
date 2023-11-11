@@ -21,6 +21,10 @@ type BaseResult<T, E> = {
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : Result<R, E | unknown>;
+    task<R, E2>(
+        f: MapFn<T, R>,
+        e: MapFn<unknown, E2>,
+    ): R extends Promise<infer R2> ? AsyncResult<R2, E2> : Result<R, E2>;
 };
 
 export type Result<T, E> = BaseResult<T, E>;
@@ -36,6 +40,10 @@ export type AsyncResult<T, E> = {
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
+    task<R, E2>(
+        f: MapFn<T, R>,
+        e: MapFn<unknown, E2>,
+    ): R extends Promise<infer R2> ? AsyncResult<R2, E2> : Result<R, E2>;
 } & Omit<BaseResult<T, E>, "value" | "error" | "map" | "mapError" | "flatMap"> &
     Promise<Result<T, E>>;
 
@@ -112,6 +120,16 @@ const promiseOfResultToAsyncResult = <T, E>(promise: Promise<Result<T, E>>): Asy
             return promiseOfResultToAsyncResult(mapped) as AsyncResult<R, E | unknown>;
         };
 
+    // @ts-ignore
+    promise.task = // Constrain the @ts-ignore to the bare minimum with this comment.
+        <R, E2>(f: MapFn<T, R>, e: MapFn<unknown, E2>): AsyncResult<R, E2> => {
+            const mapped = promise.then((resolved) => {
+                const mapped = resolved.task(f, e);
+                return Promise.resolve(mapped);
+            });
+            return promiseOfResultToAsyncResult(mapped) as AsyncResult<R, E2>;
+        };
+
     return promise as AsyncResult<T, E>;
 };
 
@@ -152,6 +170,25 @@ export const Ok = <T>(value: T): Result<T, never> => ({
             return Err(e) as Any;
         }
     },
+    task<R, E2>(
+        f: MapFn<T, R>,
+        errorHandler: MapFn<unknown, E2>,
+    ): R extends Promise<infer R2> ? AsyncResult<R2, E2> : Result<R, E2> {
+        try {
+            const newValue = f(value);
+
+            return (
+                newValue instanceof Promise //
+                    ? promiseOfResultToAsyncResult(
+                          newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
+                      )
+                    : Ok(newValue)
+            ) as Any;
+        } catch (e) {
+            const errorHandled = errorHandler(e);
+            return errorHandled as Any;
+        }
+    },
 });
 
 export const Err = <E>(error: E): Result<never, E> => ({
@@ -171,6 +208,7 @@ export const Err = <E>(error: E): Result<never, E> => ({
     },
     flatMap: () => Err(error) as Any,
     attemptMap: () => Err(error) as Any,
+    task: () => Err(error) as Any,
 });
 
 export const AsyncOk = <T>(value: T | Promise<T>): AsyncResult<T, never> => {
