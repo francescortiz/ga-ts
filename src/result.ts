@@ -149,7 +149,9 @@ export const Ok = <T>(value: T): Result<T, never> => ({
         ) as Any;
     },
     mapError: () => Ok(value) as Any,
-    flatMap<T2, E2>(f: FlatMapFn<T, never, T2, E2>) {
+    flatMap<T2, E2>(
+        f: FlatMapFn<T, never, T2, E2>,
+    ): ReturnType<typeof f> extends Promise<T2> ? AsyncResult<T2, E2> : Result<T2, E2> {
         const result = f(value);
         return (result instanceof Promise ? promiseOfResultToAsyncResult(result) : result) as Any;
     },
