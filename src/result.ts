@@ -23,7 +23,7 @@ type BaseResult<T, E> = {
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : Result<R, E | unknown>;
     task<R, E2>(
         f: MapFn<T, R>,
-        e: MapFn<unknown, E2>,
+        e: MapFn<unknown, Result<never, E2>>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E2> : Result<R, E2>;
 };
 
@@ -42,7 +42,7 @@ export type AsyncResult<T, E> = {
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
     task<R, E2>(
         f: MapFn<T, R>,
-        e: MapFn<unknown, E2>,
+        e: MapFn<unknown, Result<never, E2>>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E2> : Result<R, E2>;
 } & Omit<BaseResult<T, E>, "value" | "error" | "map" | "mapError" | "flatMap"> &
     Promise<Result<T, E>>;
@@ -122,7 +122,7 @@ const promiseOfResultToAsyncResult = <T, E>(promise: Promise<Result<T, E>>): Asy
 
     // @ts-ignore
     promise.task = // Constrain the @ts-ignore to the bare minimum with this comment.
-        <R, E2>(f: MapFn<T, R>, e: MapFn<unknown, E2>): AsyncResult<R, E2> => {
+        <R, E2>(f: MapFn<T, R>, e: MapFn<unknown, Result<never, E2>>): AsyncResult<R, E2> => {
             const mapped = promise.then((resolved) => {
                 const mapped = resolved.task(f, e);
                 return Promise.resolve(mapped);
@@ -172,7 +172,7 @@ export const Ok = <T>(value: T): Result<T, never> => ({
     },
     task<R, E2>(
         f: MapFn<T, R>,
-        errorHandler: MapFn<unknown, E2>,
+        errorHandler: MapFn<unknown, Result<never, E2>>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E2> : Result<R, E2> {
         try {
             const newValue = f(value);
@@ -180,7 +180,7 @@ export const Ok = <T>(value: T): Result<T, never> => ({
             return (
                 newValue instanceof Promise //
                     ? promiseOfResultToAsyncResult(
-                          newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
+                          newValue.then((resolved) => Ok(resolved)).catch((e) => errorHandler(e)),
                       )
                     : Ok(newValue)
             ) as Any;

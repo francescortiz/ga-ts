@@ -167,7 +167,6 @@ describe("result.ts", () => {
 
             expect(result.error).toBe("Division by zero!");
         });
-
         it("task and function returns", async () => {
             const division = ({
                 numerator,
@@ -183,6 +182,41 @@ describe("result.ts", () => {
 
             expect(result.value).toBe(1n);
             expect(result.error).toBeUndefined();
+        });
+        it("task and function returns when async function", async () => {
+            const asyncDivision = async ({
+                numerator,
+                denominator,
+            }: {
+                numerator: bigint;
+                denominator: bigint;
+            }) => Promise.resolve(numerator / denominator);
+
+            const start = Ok({ numerator: 2n, denominator: 2n });
+
+            const result = await start.task(asyncDivision, (err: unknown) =>
+                Err("Division by zero!"),
+            );
+
+            expect(result.value).toBe(1n);
+            expect(result.error).toBeUndefined();
+        });
+        it("task and function throws", async () => {
+            const asyncDivision = async ({
+                numerator,
+                denominator,
+            }: {
+                numerator: bigint;
+                denominator: bigint;
+            }) => Promise.resolve(numerator / denominator);
+
+            const start = Ok({ numerator: 2n, denominator: 0n });
+
+            const result = await start.task(asyncDivision, (err: unknown) =>
+                Err("Division by zero!"),
+            );
+
+            expect(result.error).toBe("Division by zero!");
         });
     });
 
