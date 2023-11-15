@@ -1,15 +1,11 @@
 import { None, Option, Some } from "./option";
+import { Any, AsyncMapFn, MapFn } from "./types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Any = any;
-
-export type MapFn<A, B> = (a: A) => B;
-export type AsyncMapFn<A, B> = (a: A) => Promise<B>;
 export type FlatMapFn<T, E, T2, E2> = (
     value: T,
 ) => Result<T2, E | E2> | Promise<Result<T2, E | E2>>;
 
-type BaseResult<T, E> = {
+export type Result<T, E> = {
     ok: boolean;
     value: T;
     error: E;
@@ -23,8 +19,6 @@ type BaseResult<T, E> = {
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : Result<R, E | unknown>;
 };
 
-export type Result<T, E> = BaseResult<T, E>;
-
 export type AsyncResult<T, E> = {
     value: Promise<Option<T>>;
     error: Promise<Option<E>>;
@@ -36,7 +30,7 @@ export type AsyncResult<T, E> = {
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
-} & Omit<BaseResult<T, E>, "value" | "error" | "map" | "mapError" | "flatMap"> &
+} & Omit<Result<T, E>, "value" | "error" | "map" | "mapError" | "flatMap"> &
     Promise<Result<T, E>>;
 
 export type Ok<T> = {
@@ -59,7 +53,9 @@ export type AsyncErr<E> = {
     error: Promise<Option<E>>;
 } & Omit<AsyncResult<never, E>, "error">;
 
-const promiseOfResultToAsyncResult = <T, E>(promise: Promise<Result<T, E>>): AsyncResult<T, E> => {
+export const promiseOfResultToAsyncResult = <T, E>(
+    promise: Promise<Result<T, E>>,
+): AsyncResult<T, E> => {
     // @ts-ignore
     promise.ok = // Constrain the @ts-ignore to the bare minimum with this comment.
         promise.then((resolved) => resolved.ok);
