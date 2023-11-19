@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { AsyncErr, AsyncOk, AsyncResult, Err, Ok, Result } from "./result";
-import { None, Some } from "./option";
-import { crash } from "./crash";
 import { inspect } from "util";
+import { crash } from "./crash";
+import { None, Some } from "./option";
+import { AsyncErr, AsyncOk, AsyncResult, Err, Ok, Result, Task } from "./result";
 
 describe("result.ts", () => {
     describe("map", () => {
@@ -150,6 +150,16 @@ describe("result.ts", () => {
             expect(awaitedResult.value).toBe(13);
             expect(awaitedResult.error).toBeUndefined();
         });
+
+        it("sync ok async flatMap ok", async () => {
+            const start = Ok(12);
+            const result = start.flatMap(async (x) => Promise.resolve(Ok(x + 1)));
+
+            const resultResolved = await result;
+
+            expect(resultResolved.value).toBe(13);
+            expect(resultResolved.error).toBeUndefined();
+        });
     });
     describe("Task", () => {
         it("task and function throws", () => {
@@ -163,7 +173,9 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 0n });
 
-            const result = start.task(division, (err: unknown) => Err("Division by zero!"));
+            const task = Task(division, (err: unknown) => Err("Division by zero!"));
+
+            const result = start.flatMap(task);
 
             expect(result.error).toBe("Division by zero!");
         });
@@ -178,7 +190,9 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 2n });
 
-            const result = start.task(division, (err: unknown) => Err("Division by zero!"));
+            const task = Task(division, (err: unknown) => Err("Division by zero!"));
+
+            const result = start.flatMap(task);
 
             expect(result.value).toBe(1n);
             expect(result.error).toBeUndefined();
@@ -194,9 +208,9 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 2n });
 
-            const result = await start.task(asyncDivision, (err: unknown) =>
-                Err("Division by zero!"),
-            );
+            const task = Task(asyncDivision, (err: unknown) => Err("Division by zero!"));
+
+            const result = await start.flatMap(task);
 
             expect(result.value).toBe(1n);
             expect(result.error).toBeUndefined();
@@ -212,9 +226,9 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 0n });
 
-            const result = await start.task(asyncDivision, (err: unknown) =>
-                Err("Division by zero!"),
-            );
+            const task = Task(asyncDivision, (err: unknown) => Err("Division by zero!"));
+
+            const result = await start.flatMap(task);
 
             expect(result.error).toBe("Division by zero!");
         });
