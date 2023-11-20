@@ -183,6 +183,29 @@ describe("result.ts", () => {
 
             expect(result.error).toBe("Division by zero!");
         });
+        it("async task and function throws", async () => {
+            const division = ({
+                numerator,
+                denominator,
+            }: {
+                numerator: bigint;
+                denominator: bigint;
+            }) => numerator / denominator;
+
+            const start = AsyncOk(Promise.resolve({ numerator: 2n, denominator: 0n }));
+
+            const task = Task(division, (err: unknown) =>
+                err instanceof RangeError
+                    ? Err("Division by zero!")
+                    : crash<Result<never, string>>(err),
+            );
+
+            const result = start.flatMap(task);
+
+            const awaited = await result;
+
+            expect(awaited.error).toBe("Division by zero!");
+        });
         it("task and function returns", async () => {
             const division = ({
                 numerator,
