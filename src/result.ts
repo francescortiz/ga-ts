@@ -5,9 +5,9 @@ type Any = any;
 
 export type MapFn<A, B> = (a: A) => B;
 export type AsyncMapFn<A, B> = (a: A) => Promise<B>;
-export type FlatMapFn<T, E, T2, E2> = (
+export type FlatMapFnOrTask<T, E, T2, E2> = (
     value: T,
-) => Result<T2, E | E2> | Promise<Result<T2, E | E2>>;
+) => Result<T2, E | E2> | Promise<Result<T2, E | E2>> | AsyncResult<T2, E | E2>;
 
 type BaseResult<T, E> = {
     ok: boolean;
@@ -15,9 +15,13 @@ type BaseResult<T, E> = {
     error: E;
     map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
     mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncResult<T, R2> : Result<T, R>;
-    flatMap<T2, E2>(
-        f: FlatMapFn<T, E, T2, E2>,
-    ): ReturnType<typeof f> extends Promise<T2> ? AsyncResult<T2, E2> : Result<T2, E2>;
+    flatMap<T2, E2, Q extends FlatMapFnOrTask<T, E, T2, E2>>(
+        f: Q,
+    ): ReturnType<Q> extends Promise<Result<infer T3, infer E3>>
+        ? AsyncResult<T3, E3>
+        : ReturnType<Q> extends AsyncResult<T2, E2>
+        ? AsyncResult<T2, E2>
+        : Result<T2, E2>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : Result<R, E | unknown>;
@@ -32,7 +36,7 @@ export type AsyncResult<T, E> = {
     mapError<R>(
         f: MapFn<E, R>,
     ): R extends Promise<infer R2> ? AsyncResult<T, R2> : AsyncResult<T, R>;
-    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
+    flatMap<T2, E2>(f: FlatMapFnOrTask<T, E, T2, E2>): AsyncResult<T2, E2>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
@@ -94,7 +98,7 @@ const promiseOfResultToAsyncResult = <T, E>(promise: Promise<Result<T, E>>): Asy
 
     // @ts-ignore
     promise.flatMap = // Constrain the @ts-ignore to the bare minimum with this comment.
-        <T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E | E2> => {
+        <T2, E2>(f: FlatMapFnOrTask<T, E, T2, E2>): AsyncResult<T2, E | E2> => {
             const mapped = promise.then((resolved) => {
                 const chained = resolved.flatMap(f);
                 return promiseOfResultToAsyncResult(Promise.resolve(chained));
@@ -132,7 +136,7 @@ export const Ok = <T>(value: T): Result<T, never> => ({
     },
     mapError: () => Ok(value) as Any,
     flatMap<T2, E2>(
-        f: FlatMapFn<T, never, T2, E2>,
+        f: FlatMapFnOrTask<T, never, T2, E2>,
     ): ReturnType<typeof f> extends Promise<T2> ? AsyncResult<T2, E2> : Result<T2, E2> {
         const result = f(value);
         return (result instanceof Promise ? promiseOfResultToAsyncResult(result) : result) as Any;
@@ -193,10 +197,14 @@ export const AsyncErr = <E>(error: E | Promise<E>): AsyncResult<never, E> => {
     return promiseOfResultToAsyncResult(resultPromise) as AsyncErr<E>;
 };
 
+export type Task<T, E, R> = (
+    v: T,
+) => R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
+
 export const Task = <T, E, R>(
     f: MapFn<T, R>,
     errorHandler: MapFn<unknown, Result<never, E>>,
-): ((v: T) => R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>) => {
+): Task<T, E, R> => {
     return (value: T) => {
         try {
             const newValue = f(value);

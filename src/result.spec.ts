@@ -173,7 +173,11 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 0n });
 
-            const task = Task(division, (err: unknown) => Err("Division by zero!"));
+            const task = Task(division, (err: unknown) =>
+                err instanceof RangeError
+                    ? Err("Division by zero!")
+                    : crash<Result<never, string>>(err),
+            );
 
             const result = start.flatMap(task);
 
