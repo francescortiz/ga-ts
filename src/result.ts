@@ -5,9 +5,8 @@ type Any = any;
 
 export type MapFn<A, B> = (a: A) => B;
 export type AsyncMapFn<A, B> = (a: A) => Promise<B>;
-export type FlatMapFn<T, E, T2, E2> = (
-    value: T,
-) => Result<T2, E | E2> | Promise<Result<T2, E | E2>> | AsyncResult<T2, E | E2>;
+export type FlatMapFn<T, E, T2, E2> = (value: T) => Result<T2, E | E2> | AsyncResult<T2, E | E2>;
+export type FlatMapPromiseFn<T, E, T2, E2> = (value: T) => Promise<Result<T2, E | E2>>;
 
 type BaseResult<T, E> = {
     ok: boolean;
@@ -15,12 +14,8 @@ type BaseResult<T, E> = {
     error: E;
     map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
     mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncResult<T, R2> : Result<T, R>;
-    flatMap<R, E2, Q extends Task<T, E2, R>>(f: Q): ReturnType<Q>;
-    flatMap<T2, E2, Q extends FlatMapFn<T, E, T2, E2>>(
-        f: Q,
-    ): ReturnType<Q> extends Promise<Result<infer T3, infer E3>>
-        ? AsyncResult<T3, E3>
-        : Result<T2, E2>;
+    flatMap<T2, E2>(f: FlatMapPromiseFn<T, E, T2, E2>): AsyncResult<T2, E2>;
+    flatMap<Q extends FlatMapFn<T, E, Any, Any> | Task<T, E, Any>>(f: Q): ReturnType<Q>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : Result<R, E | unknown>;
@@ -35,7 +30,9 @@ export type AsyncResult<T, E> = {
     mapError<R>(
         f: MapFn<E, R>,
     ): R extends Promise<infer R2> ? AsyncResult<T, R2> : AsyncResult<T, R>;
-    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
+    flatMap<T2, E2>(
+        f: FlatMapFn<T, E, T2, E2> | FlatMapPromiseFn<T, E, T2, E2>,
+    ): AsyncResult<T2, E2>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
@@ -134,11 +131,11 @@ export const Ok = <T>(value: T): Result<T, never> => ({
         ) as Any;
     },
     mapError: () => Ok(value) as Any,
-    flatMap(f) {
+    flatMap<T2, E2>(f: FlatMapFn<T, never, T2, E2> | FlatMapPromiseFn<T, never, T2, E2>): Any {
         const result = f(value);
         return (result instanceof Promise ? promiseOfResultToAsyncResult(result) : result) as Any;
     },
-    attemptMap(f) {
+    attemptMap(f): Any {
         try {
             const newValue = f(value);
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { inspect } from "util";
 import { crash } from "./crash";
 import { None, Some } from "./option";
-import { AsyncErr, AsyncOk, AsyncResult, Err, Ok, Result, Task } from "./result";
+import { AsyncErr, AsyncOk, AsyncResult, Err, FlatMapPromiseFn, Ok, Result, Task } from "./result";
 
 describe("result.ts", () => {
     describe("map", () => {
@@ -140,6 +140,7 @@ describe("result.ts", () => {
 
         it("async ok flatMap ok", async () => {
             const start = AsyncOk(Promise.resolve(12));
+
             const result = start.flatMap((x) => Promise.resolve(Ok(x + 1)));
 
             expect(await result.value).toEqual(Some(13));
@@ -153,7 +154,8 @@ describe("result.ts", () => {
 
         it("sync ok async flatMap ok", async () => {
             const start = Ok(12);
-            const result = start.flatMap(async (x) => Promise.resolve(Ok(x + 1)));
+            const f = async (x: number) => Promise.resolve(Ok(x + 1));
+            const result = start.flatMap(f);
 
             const resultResolved = await result;
 
@@ -217,7 +219,11 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 2n });
 
-            const task = Task(division, (err: unknown) => Err("Division by zero!"));
+            const task = Task(division, (err: unknown) =>
+                err instanceof RangeError
+                    ? Err("Division by zero!")
+                    : crash<Result<never, string>>(err),
+            );
 
             const result = start.flatMap(task);
 
@@ -235,7 +241,11 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 2n });
 
-            const task = Task(asyncDivision, (err: unknown) => Err("Division by zero!"));
+            const task = Task(asyncDivision, (err: unknown) =>
+                err instanceof RangeError
+                    ? Err("Division by zero!")
+                    : crash<Result<never, string>>(err),
+            );
 
             const result = await start.flatMap(task);
 
@@ -253,7 +263,11 @@ describe("result.ts", () => {
 
             const start = Ok({ numerator: 2n, denominator: 0n });
 
-            const task = Task(asyncDivision, (err: unknown) => Err("Division by zero!"));
+            const task = Task(asyncDivision, (err: unknown) =>
+                err instanceof RangeError
+                    ? Err("Division by zero!")
+                    : crash<Result<never, string>>(err),
+            );
 
             const result = await start.flatMap(task);
 
