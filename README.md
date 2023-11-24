@@ -35,7 +35,7 @@ codebases.
 ### `crash`
 
 ```typescript
-import {crash} from "ga-ts";
+import { crash } from "ga-ts";
 
 const a = condition === true ? 1 : crash("This should never happen.");
 ```
@@ -43,13 +43,13 @@ const a = condition === true ? 1 : crash("This should never happen.");
 ### `Option`
 
 ```typescript
-import {Option, Some, None} from "ga-ts";
+import { Option, Some, None } from "ga-ts";
 
 const flagOption: Option<boolean> = [None, Some(false), Some(true)][Math.floor(Math.random() * 3)];
 
 if (!flagOption.some) {
     // The flag is not set, ask the user to set it.
-   return;
+    return;
 }
 
 // The flag is set, use it.
@@ -59,8 +59,8 @@ const flag = flagOption.value;
 ### `Result`
 
 ```typescript
-import {crash, AsyncResult, Ok, AsyncOk, Err} from "ga-ts";
-import {inspect} from "util";
+import { crash, AsyncResult, Ok, AsyncOk, Err } from "ga-ts";
+import { inspect } from "util";
 
 const firstOne: Result<number, never> = Ok(Math.random());
 const secondOne: AsyncResult<number, never> = AsyncOk(Promise.resolve(Math.random()));
@@ -83,7 +83,7 @@ const randomPicAsyncResult: AsyncResult<ArrayBuffer, string | Error | unknown> =
         const error = new Error(`Failed to fetch ${(error_ as Error)?.message || error_}`);
         await fetch("https://example.com/error", {
             method: "POST",
-            body: inspect(error, {depth: null}),
+            body: inspect(error, { depth: null }),
         });
         return error;
     }) // -> Async
@@ -105,6 +105,6 @@ const error = await randomPicAsyncResult.error; // -> Option<string | Error | un
 
 ## Roadmap
 
-- [ ] Add `Option` tests.
-- [ ] Add `Task`.
-- [ ] Research what other methods to implement.
+-   [x] Add `Task`.
+-   [ ] Add `Option` tests.
+-   [ ] Research what other methods to implement.

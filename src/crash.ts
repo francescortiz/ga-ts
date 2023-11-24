@@ -1,3 +1,6 @@
-export const crash = <T>(message: string): T => {
-    throw new Error(message);
+export const crash = <T>(e: unknown | string): T => {
+    if (e instanceof Error) {
+        throw e;
+    }
+    throw new Error(String(e));
 };
