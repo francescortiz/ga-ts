@@ -41,48 +41,62 @@ export type AsyncSome<T> = {
 } & Omit<Some<T>, "value" | "map" | "mapError" | "flatMap"> &
     Promise<Some<T>>;
 
-export const Some = <T>(value: T): Some<T> => ({
-    some: true,
-    value,
-    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncSome<R2> : Some<R> {
-        const newValue = f(value);
+export const Some = <T>(value: T): Some<T> => {
+    const some = {
+        some: true,
+        value,
+    };
 
-        return (
-            newValue instanceof Promise //
-                ? AsyncSome(newValue)
-                : Some(newValue)
-        ) as Any;
-    },
-    flatMap<T2>(f: FlatMapFn<T, T2>) {
-        const result = f(value);
-        return (result instanceof Promise ? promiseOfOptionToAsyncOption(result) : result) as Any;
-    },
-    attemptMap<R>(
-        f: MapFn<T, R>,
-    ): R extends Promise<infer R2> ? AsyncResult<R2, never> : Result<R, unknown> {
-        try {
+    // We don't want functions to be members of the Some instance.
+    const proto = Object.getPrototypeOf(some);
+    Object.assign(proto, {
+        map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncSome<R2> : Some<R> {
             const newValue = f(value);
 
             return (
                 newValue instanceof Promise //
-                    ? promiseOfResultToAsyncResult(
-                          newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
-                      )
-                    : Ok(newValue)
+                    ? AsyncSome(newValue)
+                    : Some(newValue)
             ) as Any;
-        } catch (e) {
-            return Err(e) as Any;
-        }
-    },
-});
+        },
+        flatMap<T2>(f: FlatMapFn<T, T2>) {
+            const result = f(value);
+            return (
+                result instanceof Promise ? promiseOfOptionToAsyncOption(result) : result
+            ) as Any;
+        },
+        attemptMap<R>(
+            f: MapFn<T, R>,
+        ): R extends Promise<infer R2> ? AsyncResult<R2, never> : Result<R, unknown> {
+            try {
+                const newValue = f(value);
 
+                return (
+                    newValue instanceof Promise //
+                        ? promiseOfResultToAsyncResult(
+                              newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
+                          )
+                        : Ok(newValue)
+                ) as Any;
+            } catch (e) {
+                return Err(e) as Any;
+            }
+        },
+    });
+    return some as Some<T>;
+};
+
+// @ts-ignore It is missing the functions but we assign them afterwards.
 export const None: None = {
     some: false,
     value: undefined as never,
+};
+// We don't want functions to be members of the None instance.
+Object.assign(Object.getPrototypeOf(None), {
     map: () => None,
     flatMap: () => None,
     attemptMap: () => Ok(None),
-};
+});
 
 export const AsyncSome = <T>(value: T | Promise<T>): AsyncOption<T> => {
     const resultPromise = Promise.resolve(value).then((resolvedValue) => {
