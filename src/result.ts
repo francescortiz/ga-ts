@@ -1,21 +1,10 @@
 import { None, Option, Some } from "./option";
 import { Any, AsyncMapFn, MapFn } from "./types";
+import { Task } from "./task";
 
 export type FlatMapFn<T, E, T2, E2> = (
-  value: T,
+    value: T,
 ) => Result<T2, E | E2> | Promise<Result<T2, E | E2>>;
-
-/*
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Any = any;
-
-export type MapFn<A, B> = (a: A) => B;
-export type AsyncMapFn<A, B> = (a: A) => Promise<B>;
-export type FlatMapFn<T, E, T2, E2> = (value: T) => Result<T2, E | E2> | AsyncResult<T2, E | E2>;
-export type FlatMapPromiseFn<T, E, T2, E2> = (value: T) => Promise<Result<T2, E | E2>>;
-
- */
 
 export type Result<T, E> = {
     ok: boolean;
@@ -37,9 +26,7 @@ export type AsyncResult<T, E> = {
     mapError<R>(
         f: MapFn<E, R>,
     ): R extends Promise<infer R2> ? AsyncResult<T, R2> : AsyncResult<T, R>;
-    flatMap<T2, E2>(
-        f: FlatMapFn<T, E, T2, E2> | FlatMapFn<T, E, T2, E2>,
-    ): AsyncResult<T2, E2>;
+    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2> | FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
@@ -196,27 +183,4 @@ export const AsyncErr = <E>(error: E | Promise<E>): AsyncResult<never, E> => {
     });
 
     return promiseOfResultToAsyncResult(resultPromise) as AsyncErr<E>;
-};
-
-export type Task<T, E, R> = (
-    v: T,
-) => R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
-
-export const Task = <T, E, R>(
-    f: MapFn<T, R>,
-    errorHandler: MapFn<unknown, Result<never, E>>,
-): Task<T, E, R> => {
-    return (value: T) => {
-        try {
-            const newValue = f(value);
-
-            return newValue instanceof Promise //
-                ? promiseOfResultToAsyncResult(
-                      newValue.then((resolved) => Ok(resolved)).catch((e) => errorHandler(e)),
-                  )
-                : (Ok(newValue) as Any);
-        } catch (e) {
-            return errorHandler(e);
-        }
-    };
 };
