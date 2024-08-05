@@ -48,8 +48,7 @@ export const Some = <T>(value: T): Some<T> => {
     };
 
     // We don't want functions to be members of the Some instance.
-    const proto = Object.getPrototypeOf(some);
-    Object.assign(proto, {
+    Object.setPrototypeOf(some, {
         map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncSome<R2> : Some<R> {
             const newValue = f(value);
 
@@ -92,10 +91,29 @@ export const None: None = {
     value: undefined as never,
 };
 // We don't want functions to be members of the None instance.
-Object.assign(Object.getPrototypeOf(None), {
+Object.setPrototypeOf(None, {
     map: () => None,
-    flatMap: () => None,
-    attemptMap: () => Ok(None),
+    flatMap<T2>(f: FlatMapFn<never, T2>) {
+        const result = f(undefined as never);
+        return (result instanceof Promise ? promiseOfOptionToAsyncOption(result) : result) as Any;
+    },
+    attemptMap<R>(
+        f: MapFn<never, R>,
+    ): R extends Promise<infer R2> ? AsyncResult<R2, never> : Result<R, unknown> {
+        try {
+            const newValue = f(undefined as never);
+
+            return (
+                newValue instanceof Promise //
+                    ? promiseOfResultToAsyncResult(
+                          newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
+                      )
+                    : Ok(newValue)
+            ) as Any;
+        } catch (e) {
+            return Err(e) as Any;
+        }
+    },
 });
 
 export const AsyncSome = <T>(value: T | Promise<T>): AsyncOption<T> => {
