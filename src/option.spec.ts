@@ -43,9 +43,9 @@ describe("Option", () => {
         expect(option).toEqual({ some: false, value: undefined });
     });
 
-    it("None.flatMap evaluates to a valid Some", () => {
+    it("None.flatMap evaluates to None", () => {
         const option = None.flatMap(() => Some(1));
-        expect(option).toEqual({ some: true, value: 1 });
+        expect(option).toEqual({ some: false, value: undefined });
     });
 
     it("None.attemptMap evaluates to a valid Ok", () => {

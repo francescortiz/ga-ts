@@ -93,9 +93,8 @@ export const None: None = {
 // We don't want functions to be members of the None instance.
 Object.setPrototypeOf(None, {
     map: () => None,
-    flatMap<T2>(f: FlatMapFn<never, T2>) {
-        const result = f(undefined as never);
-        return (result instanceof Promise ? promiseOfOptionToAsyncOption(result) : result) as Any;
+    flatMap<T2>(_: FlatMapFn<never, T2>) {
+        return None;
     },
     attemptMap<R>(
         f: MapFn<never, R>,
