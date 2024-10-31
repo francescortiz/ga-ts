@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { None, Some } from "./option";
+import { AttemptMapOnNoneError, None, Some } from "./option";
 
 describe("Option", () => {
     it("Some constructor evaluates to a valid Some", () => {
@@ -48,15 +48,8 @@ describe("Option", () => {
         expect(option).toEqual({ some: false, value: undefined });
     });
 
-    it("None.attemptMap evaluates to a valid Ok", () => {
+    it("None.attemptMap evaluates to Err(AttemptMapOnNoneError)", () => {
         const option = None.attemptMap(() => 1);
-        expect(option).toEqual({ ok: true, value: 1 });
-    });
-
-    it("None.attemptMap evaluates to a valid Err", () => {
-        const option = None.attemptMap(() => {
-            throw new Error("error");
-        });
-        expect(option).toEqual({ ok: false, error: new Error("error") });
+        expect(option).toEqual({ ok: false, error: new AttemptMapOnNoneError() });
     });
 });

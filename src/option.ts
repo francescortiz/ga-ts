@@ -1,6 +1,13 @@
 import { Any, MapFn } from "./types";
 import { AsyncResult, Err, Ok, promiseOfResultToAsyncResult, Result } from "./result";
 
+export class AttemptMapOnNoneError extends Error {
+    kind: string = "AttemptMapOnNoneError";
+    constructor() {
+        super("Attempted to map over None");
+    }
+}
+
 export type FlatMapFn<T, T2> = (value: T) => Option<T2> | Promise<Option<T2>>;
 
 export type Option<T> = Some<T> | None;
@@ -26,9 +33,9 @@ export type Some<T> = {
 export type None = {
     some: false;
     value: never;
-    map: <R>(f: MapFn<never, R>) => None;
-    flatMap: <T2>(f: FlatMapFn<never, T2>) => None;
-    attemptMap: <T2>(f: MapFn<never, T2>) => Result<None, never>;
+    map: (f: MapFn<any, any>) => None;
+    flatMap: (f: FlatMapFn<any, any>) => None;
+    attemptMap: (f: MapFn<any, any>) => Result<never, AttemptMapOnNoneError>;
 };
 
 export type AsyncSome<T> = {
@@ -93,25 +100,11 @@ export const None: None = {
 // We don't want functions to be members of the None instance.
 Object.setPrototypeOf(None, {
     map: () => None,
-    flatMap<T2>(_: FlatMapFn<never, T2>) {
+    flatMap(_: FlatMapFn<any, any>) {
         return None;
     },
-    attemptMap<R>(
-        f: MapFn<never, R>,
-    ): R extends Promise<infer R2> ? AsyncResult<R2, never> : Result<R, unknown> {
-        try {
-            const newValue = f(undefined as never);
-
-            return (
-                newValue instanceof Promise //
-                    ? promiseOfResultToAsyncResult(
-                          newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
-                      )
-                    : Ok(newValue)
-            ) as Any;
-        } catch (e) {
-            return Err(e) as Any;
-        }
+    attemptMap(_: MapFn<any, any>): Result<never, AttemptMapOnNoneError> {
+        return Err(new AttemptMapOnNoneError());
     },
 });
 
