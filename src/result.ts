@@ -1,27 +1,23 @@
 import { None, Option, Some } from "./option";
+import { Any, AsyncMapFn, MapFn } from "./types";
+import { Task } from "./task";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Any = any;
+export type FlatMapFn<T, E, T2, E2> = (
+    value: T,
+) => Result<T2, E | E2> | Promise<Result<T2, E | E2>>;
 
-export type MapFn<A, B> = (a: A) => B;
-export type AsyncMapFn<A, B> = (a: A) => Promise<B>;
-export type FlatMapFn<T, E, T2, E2> = (value: T) => Result<T2, E | E2> | AsyncResult<T2, E | E2>;
-export type FlatMapPromiseFn<T, E, T2, E2> = (value: T) => Promise<Result<T2, E | E2>>;
-
-type BaseResult<T, E> = {
+export type Result<T, E> = {
     ok: boolean;
     value: T;
     error: E;
     map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
     mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncResult<T, R2> : Result<T, R>;
-    flatMap<T2, E2>(f: FlatMapPromiseFn<T, E, T2, E2>): AsyncResult<T2, E2>;
+    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
     flatMap<Q extends FlatMapFn<T, E, Any, Any> | Task<T, E, Any>>(f: Q): ReturnType<Q>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : Result<R, E | unknown>;
 };
-
-export type Result<T, E> = BaseResult<T, E>;
 
 export type AsyncResult<T, E> = {
     value: Promise<Option<T>>;
@@ -30,13 +26,11 @@ export type AsyncResult<T, E> = {
     mapError<R>(
         f: MapFn<E, R>,
     ): R extends Promise<infer R2> ? AsyncResult<T, R2> : AsyncResult<T, R>;
-    flatMap<T2, E2>(
-        f: FlatMapFn<T, E, T2, E2> | FlatMapPromiseFn<T, E, T2, E2>,
-    ): AsyncResult<T2, E2>;
+    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
-} & Omit<BaseResult<T, E>, "value" | "error" | "map" | "mapError" | "flatMap"> &
+} & Omit<Result<T, E>, "value" | "error" | "map" | "mapError" | "flatMap"> &
     Promise<Result<T, E>>;
 
 export type Ok<T> = {
@@ -59,7 +53,9 @@ export type AsyncErr<E> = {
     error: Promise<Option<E>>;
 } & Omit<AsyncResult<never, E>, "error">;
 
-const promiseOfResultToAsyncResult = <T, E>(promise: Promise<Result<T, E>>): AsyncResult<T, E> => {
+export const promiseOfResultToAsyncResult = <T, E>(
+    promise: Promise<Result<T, E>>,
+): AsyncResult<T, E> => {
     // @ts-ignore
     promise.ok = // Constrain the @ts-ignore to the bare minimum with this comment.
         promise.then((resolved) => resolved.ok);
@@ -115,61 +111,79 @@ const promiseOfResultToAsyncResult = <T, E>(promise: Promise<Result<T, E>>): Asy
     return promise as AsyncResult<T, E>;
 };
 
-export const Ok = <T>(value: T): Result<T, never> => ({
-    ok: true,
-    value,
-    error: undefined as never,
-    map<R>(
-        f: MapFn<T, R>,
-    ): R extends Promise<infer R2> ? AsyncResult<R2, never> : Result<R, never> {
-        const newValue = f(value);
+export const Ok = <T>(value: T): Result<T, never> => {
+    const result = {
+        ok: true,
+        value,
+        error: undefined as never,
+    };
 
-        return (
-            newValue instanceof Promise //
-                ? AsyncOk(newValue)
-                : Ok(newValue)
-        ) as Any;
-    },
-    mapError: () => Ok(value) as Any,
-    flatMap<T2, E2>(f: FlatMapFn<T, never, T2, E2> | FlatMapPromiseFn<T, never, T2, E2>): Any {
-        const result = f(value);
-        return (result instanceof Promise ? promiseOfResultToAsyncResult(result) : result) as Any;
-    },
-    attemptMap(f): Any {
-        try {
+    // We don't want functions to be members of the Ok instance.
+    Object.setPrototypeOf(result, {
+        map: <R>(
+            f: MapFn<T, R>,
+        ): R extends Promise<infer R2> ? AsyncResult<R2, never> : Result<R, never> => {
             const newValue = f(value);
 
             return (
                 newValue instanceof Promise //
-                    ? promiseOfResultToAsyncResult(
-                          newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
-                      )
+                    ? AsyncOk(newValue)
                     : Ok(newValue)
             ) as Any;
-        } catch (e) {
-            return Err(e) as Any;
-        }
-    },
-});
+        },
+        mapError: <R>(): T extends Promise<infer R2> ? AsyncResult<T, R2> : Result<T, R> =>
+            Ok(value) as Any,
+        flatMap<T2, E2>(f: FlatMapFn<T, never, T2, E2>): Any {
+            const result = f(value);
+            return (
+                result instanceof Promise ? promiseOfResultToAsyncResult(result) : result
+            ) as Any;
+        },
+        attemptMap<E2>(f: MapFn<T, E2>): Any {
+            try {
+                const newValue = f(value);
 
-export const Err = <E>(error: E): Result<never, E> => ({
-    ok: false,
-    value: undefined as never,
-    error,
-    map: () => Err(error) as Any,
-    mapError: <R>(f: MapFn<E, R> | AsyncMapFn<E, R>): Any => {
-        const newValue = f(error);
+                return (
+                    newValue instanceof Promise //
+                        ? promiseOfResultToAsyncResult(
+                              newValue.then((resolved) => Ok(resolved)).catch((e) => Err(e)),
+                          )
+                        : Ok(newValue)
+                ) as Any;
+            } catch (e) {
+                return Err(e) as Any;
+            }
+        },
+    });
+    return result as Result<T, never>;
+};
 
-        const err =
-            newValue instanceof Promise //
-                ? AsyncErr(newValue)
-                : Err(newValue);
-        err.mapError = (): Any => err;
-        return err;
-    },
-    flatMap: () => Err(error) as Any,
-    attemptMap: () => Err(error) as Any,
-});
+export const Err = <E>(error: E): Result<never, E> => {
+    const err = {
+        ok: false,
+        value: undefined as never,
+        error,
+    };
+
+    // We don't want functions to be members of the Err instance.
+    Object.setPrototypeOf(err, {
+        map: () => Err(error) as Any,
+        mapError: <R>(f: MapFn<E, R> | AsyncMapFn<E, R>): Any => {
+            const newValue = f(error);
+
+            const err =
+                newValue instanceof Promise //
+                    ? AsyncErr(newValue)
+                    : Err(newValue);
+            err.mapError = (): Any => err;
+            return err;
+        },
+        flatMap: () => Err(error) as Any,
+        attemptMap: () => Err(error) as Any,
+    });
+
+    return err as Result<never, E>;
+};
 
 export const AsyncOk = <T>(value: T | Promise<T>): AsyncResult<T, never> => {
     const resultPromise = Promise.resolve(value).then((resolvedValue) => {
@@ -187,27 +201,4 @@ export const AsyncErr = <E>(error: E | Promise<E>): AsyncResult<never, E> => {
     });
 
     return promiseOfResultToAsyncResult(resultPromise) as AsyncErr<E>;
-};
-
-export type Task<T, E, R> = (
-    v: T,
-) => R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
-
-export const Task = <T, E, R>(
-    f: MapFn<T, R>,
-    errorHandler: MapFn<unknown, Result<never, E>>,
-): Task<T, E, R> => {
-    return (value: T) => {
-        try {
-            const newValue = f(value);
-
-            return newValue instanceof Promise //
-                ? promiseOfResultToAsyncResult(
-                      newValue.then((resolved) => Ok(resolved)).catch((e) => errorHandler(e)),
-                  )
-                : (Ok(newValue) as Any);
-        } catch (e) {
-            return errorHandler(e);
-        }
-    };
 };
