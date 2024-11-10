@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { None, Some, Option, NoValueError, AttemptMapOnNoneError } from "./option";
+import { None, Some, Option, NoValueError } from "./option";
 import { AsyncResult, Err, Ok, Result } from "./result";
 
 describe("Option", () => {
@@ -23,7 +23,7 @@ describe("Option", () => {
     });
 
     it("Some.flatMap evaluates to a valid None", () => {
-        const option: Option<number> = Some(1).flatMap(() => None);
+        const option: Option<number> = Some(1).flatMap((n: number) => None);
         expect(option).toEqual({ some: false, value: undefined });
     });
 
@@ -69,20 +69,18 @@ describe("Option", () => {
 
     it("None.resultMap evaluates to Err", () => {
         const option = None;
-        const result: Result<never, AttemptMapOnNoneError> = option.resultMap(
-            (value: number) => value + 2,
-        );
+        const result: Result<never, NoValueError> = option.resultMap((value: number) => value + 2);
 
-        expect(result).toEqual(Err(new AttemptMapOnNoneError()));
+        expect(result).toEqual(Err(new NoValueError()));
     });
 
     it("None.resultMap evaluates to Err with an async callback", async () => {
         const option = None;
-        const result: AsyncResult<never, AttemptMapOnNoneError> = option.resultMap(
-            (value: number) => Promise.resolve(value + 2),
+        const result: AsyncResult<never, NoValueError> = option.resultMap((value: number) =>
+            Promise.resolve(value + 2),
         );
 
-        expect(await result).toEqual(Err(new AttemptMapOnNoneError()));
+        expect(await result).toEqual(Err(new NoValueError()));
     });
 
     it("Some.attemptMap evaluates to Ok with the correct value", () => {
@@ -127,19 +125,17 @@ describe("Option", () => {
 
     it("None.attemptMap evaluates to Err", () => {
         const option = None;
-        const result: Result<never, AttemptMapOnNoneError> = option.attemptMap(
-            (value: number) => value + 2,
-        );
+        const result: Result<never, NoValueError> = option.attemptMap((value: number) => value + 2);
 
-        expect(result).toEqual(Err(new AttemptMapOnNoneError()));
+        expect(result).toEqual(Err(new NoValueError()));
     });
 
     it("None.attemptMap evaluates to Err with an async callback", async () => {
         const option = None;
-        const result: AsyncResult<never, AttemptMapOnNoneError> = option.attemptMap(
-            (value: number) => Promise.resolve(value + 2),
+        const result: AsyncResult<never, NoValueError> = option.attemptMap((value: number) =>
+            Promise.resolve(value + 2),
         );
 
-        expect(await result).toEqual(Err(new AttemptMapOnNoneError()));
+        expect(await result).toEqual(Err(new NoValueError()));
     });
 });
