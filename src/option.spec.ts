@@ -23,7 +23,20 @@ describe("Option", () => {
     });
 
     it("Some.flatMap evaluates to a valid None", () => {
-        const option: Option<number> = Some(1).flatMap((n: number) => None);
+        const option: Option<number> = Some(1).flatMap(() => None);
+        expect(option).toEqual({ some: false, value: undefined });
+    });
+
+    it("Some.flatMap evaluates to a valid None or Some randomly", () => {
+        const randormNumber = 1;
+
+        const option: Option<number> = Some(1).flatMap((n: number) => {
+            if (randormNumber > 0.5) {
+                return None;
+            } else {
+                return Some(n);
+            }
+        });
         expect(option).toEqual({ some: false, value: undefined });
     });
 
@@ -53,14 +66,14 @@ describe("Option", () => {
 
     it("Some.resultMap evaluates to Ok with the correct value", () => {
         const option = Some(1);
-        const result: Result<number, never> = option.resultMap((value) => value + 3);
+        const result: Result<number, never> = option.resultMap((value: number) => value + 3);
 
         expect(result).toEqual(Ok(4));
     });
 
     it("Some.resultMap evaluates to Ok with the correct value with an async callback", async () => {
         const option = Some(1);
-        const result: AsyncResult<number, never> = option.resultMap((value) =>
+        const result: AsyncResult<number, never> = option.resultMap((value: number) =>
             Promise.resolve(value + 3),
         );
 
@@ -85,14 +98,14 @@ describe("Option", () => {
 
     it("Some.attemptMap evaluates to Ok with the correct value", () => {
         const option = Some(1);
-        const result: Result<number, unknown> = option.attemptMap((value) => value + 3);
+        const result: Result<number, unknown> = option.attemptMap((value: number) => value + 3);
 
         expect(result).toEqual(Ok(4));
     });
 
     it("Some.attemptMap evaluates to Ok with the correct value with an async callback", async () => {
         const option = Some(1);
-        const result: AsyncResult<number, unknown> = option.attemptMap((value) =>
+        const result: AsyncResult<number, unknown> = option.attemptMap((value: number) =>
             Promise.resolve(value + 3),
         );
 

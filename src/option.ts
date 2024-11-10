@@ -1,5 +1,5 @@
 import { Any, MapFn } from "./types";
-import { AsyncResult, Err, Ok, Result } from "./result";
+import { Err, OkBase, Result } from "./result";
 
 export class NoValueError extends Error {
     kind: string = "NoValueError";
@@ -10,7 +10,7 @@ export class NoValueError extends Error {
 
 export type FlatMapFn<T, T2> = (value: T) => Option<T2>;
 
-export type Option<T> = Some<T> | None;
+export type Option<T> = Some<T> | None<T>;
 
 export type Some<T> = {
     some: true;
@@ -18,22 +18,18 @@ export type Some<T> = {
     map<R>(f: MapFn<T, R>): Some<R>;
     flatMap<T2>(f: FlatMapFn<T, T2>): Option<T2>;
     toResult: () => Result<T, never>;
-    resultMap: Result<T, never>["map"];
-    attemptMap: Result<T, unknown>["attemptMap"];
+    resultMap: OkBase<T>["map"];
+    attemptMap: OkBase<T>["attemptMap"];
 };
 
-export type None = {
+export type None<T = never> = {
     some: false;
     value: never;
-    map: (f: MapFn<Any, Any>) => None;
-    flatMap: (f: FlatMapFn<Any, Any>) => None;
+    map: (f: MapFn<Any, Any>) => None<T>;
+    flatMap: (f: FlatMapFn<Any, Any>) => None<T>;
     toResult: () => Result<never, NoValueError>;
-    resultMap<T, R>(
-        f: MapFn<T, R>,
-    ): R extends Promise<Any> ? AsyncResult<never, NoValueError> : Result<never, NoValueError>;
-    attemptMap<T, R>(
-        f: MapFn<T, R>,
-    ): R extends Promise<Any> ? AsyncResult<never, NoValueError> : Result<never, NoValueError>;
+    resultMap: Err<NoValueError>["map"];
+    attemptMap: Err<NoValueError>["attemptMap"];
 };
 
 export const Some = <T>(value: T): Some<T> => {
@@ -61,6 +57,7 @@ export const Some = <T>(value: T): Some<T> => {
         resultMap: (f) => Ok(value).map(f),
         attemptMap: (f) => Ok(value).attemptMap(f),
     } satisfies Omit<Some<T>, "some" | "value">);
+
     return some as Some<T>;
 };
 
@@ -79,6 +76,8 @@ Object.setPrototypeOf(None, {
     toResult: (): Result<never, NoValueError> => {
         return Err(new NoValueError());
     },
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     resultMap: (fn) => Err(new NoValueError()).map(fn),
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     attemptMap: (fn) => Err(new NoValueError()).attemptMap(fn),
 } satisfies Omit<None, "some" | "value">);

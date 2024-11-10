@@ -63,7 +63,7 @@ describe("Result", () => {
         it("map to err should be err", async () => {
             const start = Err(new Error("Error"));
 
-            const result: Result<never, Error> = start.map((x) => x + 1);
+            const result: Err<Error> = start.map((x: number) => x + 1);
 
             expect(result.value).toBeUndefined();
             expect(result.error).toEqual(new Error("Error"));
@@ -73,7 +73,7 @@ describe("Result", () => {
     describe("mapError", () => {
         it("er map", () => {
             const start = Err(12);
-            const result: Result<number, number> = start.map((x) => x + 1);
+            const result: Result<never, number> = start.map((x: number) => x + 1);
 
             expect(result.value).toBeUndefined();
             expect(result.error).toBe(12);
@@ -139,7 +139,7 @@ describe("Result", () => {
     describe("flatMap", () => {
         it("ok flatMap sync ok", () => {
             const start = Ok(12);
-            const result: AsyncResult<number, never> = start.flatMap((x) => Ok(x + 1));
+            const result: Result<number, never> = start.flatMap((x) => Ok(x + 1));
 
             expect(result.value).toBe(13);
             expect(result.error).toBeUndefined();
@@ -148,7 +148,7 @@ describe("Result", () => {
         it("async ok flatMap ok", async () => {
             const start = AsyncOk(Promise.resolve(12));
 
-            const result: AsyncResult<number, never> = start.flatMap((x) =>
+            const result: AsyncResult<number, unknown> = start.flatMap((x) =>
                 Promise.resolve(Ok(x + 1)),
             );
 

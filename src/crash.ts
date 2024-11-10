@@ -1,4 +1,4 @@
-export const crash = <T>(e: unknown | string): T => {
+export const crash = (e: unknown | string): never => {
     if (e instanceof Error) {
         throw e;
     }

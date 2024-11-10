@@ -5,7 +5,7 @@ import { AsyncOk, AsyncResult, Ok, Result } from "./result";
 
 describe("other tests", () => {
     it("runs readme code", async () => {
-        const firstOne: Result<number, Error> = Ok(1);
+        const firstOne = Ok(1);
 
         {
             const randomPicAsyncResult: AsyncResult<string, Error> = firstOne
@@ -28,7 +28,7 @@ describe("other tests", () => {
         }
     });
     it("runs readme code on error", async () => {
-        const firstOne: Result<number, Error> = Ok(1);
+        const firstOne: Result<number, never> = Ok(1);
         const secondOne: AsyncResult<number, Error> = AsyncOk(Promise.resolve(2));
 
         {
