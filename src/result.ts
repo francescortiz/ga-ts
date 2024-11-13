@@ -1,61 +1,63 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { None, Some } from "./option";
-import { Any, AsyncMapFn, MapFn } from "./types";
+import { Any, MapFn } from "./types";
 import { removePromiseType } from "./utils";
 
 export type FlatMapFn<T, E, T2, E2> = (
     value: T,
 ) => Result<T2, E | E2> | Promise<Result<T2, E | E2>>;
 
-export type OkBase<T, E> = {
+export type OkBase<T> = {
     ok: true;
     value: T;
     error: never;
-    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncOk<R2, E> : OkBase<R, E>;
-    mapError<R>(f: MapFn<E, R>): R extends Promise<Any> ? AsyncOk<T, E> : OkBase<T, E>;
-    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
+    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncOk<R2> : OkBase<R>;
+    mapError<E, R>(f: MapFn<E, R>): R extends Promise<Any> ? AsyncOk<T> : OkBase<T>;
+    flatMap<E, T2, E2>(
+        f: FlatMapFn<T, E, T2, E2>,
+    ): T2 extends Promise<Any> ? AsyncResult<T2, E2> : Result<T2, E2>;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, unknown> : Result<R, unknown>;
 };
-export type ErrBase<T, E> = {
+export type ErrBase<E> = {
     ok: false;
     value: never;
     error: E;
-    map<R>(f: MapFn<T, R>): R extends Promise<Any> ? AsyncErr<T, E> : ErrBase<T, E>;
-    mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncErr<T, R2> : ErrBase<T, R>;
-    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T, E>;
-    attemptMap<R>(f: MapFn<Any, R>): R extends Promise<Any> ? AsyncErr<T, E> : ErrBase<T, E>;
+    map<R>(f: MapFn<Any, R>): R extends Promise<Any> ? AsyncErr<E> : ErrBase<E>;
+    mapError<R>(f: MapFn<E, R>): R extends Promise<R> ? AsyncErr<R> : ErrBase<R>;
+    flatMap<R>(f: FlatMapFn<Any, E, Any, Any>): R extends Promise<Any> ? AsyncErr<E> : ErrBase<E>;
+    attemptMap<R>(f: MapFn<Any, R>): R extends Promise<Any> ? AsyncErr<E> : ErrBase<E>;
 };
 
-export type Result<T, E> = OkBase<T, E> | ErrBase<T, E>;
+export type Result<T, E> = OkBase<T> | ErrBase<E>;
 
-export type Ok<T> = OkBase<T, never>;
-export type Err<E> = ErrBase<never, E>;
+export type Ok<T> = OkBase<T>;
+export type Err<E> = ErrBase<E>;
 
-export type AsyncOk<T, E> = {
+export type AsyncOk<T> = {
     value: Promise<T>;
     error: Promise<never>;
-    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncOk<R2, E> : AsyncOk<R, E>;
-    mapError<R>(f: MapFn<Any, R>): AsyncOk<T, E>;
+    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncOk<R2> : AsyncOk<R>;
+    mapError<R>(f: MapFn<Any, R>): AsyncOk<T>;
     flatMap<F extends FlatMapFn<T, Any, Any, Any>>(
         f: F,
     ): F extends FlatMapFn<T, Any, infer T2, infer E2> ? AsyncResult<T2, E2> : never;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, unknown> : AsyncResult<R, unknown>;
-} & Promise<OkBase<T, E>>;
+} & Promise<OkBase<T>>;
 
-export type AsyncErr<T, E> = {
+export type AsyncErr<E> = {
     value: Promise<never>;
     error: Promise<E>;
-    map<R>(f: MapFn<T, R>): AsyncErr<T, E>;
-    mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncErr<T, R2> : AsyncErr<T, R>;
-    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T, E>;
-    attemptMap<R>(f: MapFn<Any, R>): AsyncErr<T, E>;
-} & Promise<ErrBase<T, E>>;
+    map(f: MapFn<Any, Any>): AsyncErr<E>;
+    mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncErr<R2> : AsyncErr<R>;
+    flatMap(f: FlatMapFn<Any, E, Any, Any>): AsyncErr<E>;
+    attemptMap(f: MapFn<Any, Any>): AsyncErr<E>;
+} & Promise<ErrBase<E>>;
 
-export type AsyncResult<T, E> = AsyncOk<T, E> | AsyncErr<T, E>;
+export type AsyncResult<T, E> = AsyncOk<T> | AsyncErr<E>;
 
 export const promiseOfResultToAsyncResult = <T, E>(
     promise: Promise<Result<T, E>>,
