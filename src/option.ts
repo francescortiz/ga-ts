@@ -1,5 +1,5 @@
 import { Any, MapFn } from "./types";
-import { Err, OkBase, Result } from "./result";
+import { Err, Ok, Result } from "./result";
 
 export class NoValueError extends Error {
     kind: string = "NoValueError";
@@ -18,8 +18,8 @@ export type Some<T> = {
     map<R>(f: MapFn<T, R>): Some<R>;
     flatMap<T2>(f: FlatMapFn<T, T2>): Option<T2>;
     toResult: () => Result<T, never>;
-    resultMap: OkBase<T>["map"];
-    attemptMap: OkBase<T>["attemptMap"];
+    resultMap: Ok<T>["map"];
+    attemptMap: Ok<T>["attemptMap"];
 };
 
 export type None<T = never> = {
