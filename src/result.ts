@@ -1,57 +1,76 @@
-import { None, Option, Some } from "./option";
-import { Any, AsyncMapFn, MapFn } from "./types";
-import { Task } from "./task";
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { None, Some } from "./option";
+import { Any, MapFn } from "./types";
 
 export type FlatMapFn<T, E, T2, E2> = (
     value: T,
 ) => Result<T2, E | E2> | Promise<Result<T2, E | E2>>;
 
-export type Result<T, E> = {
-    ok: boolean;
-    value: T;
-    error: E;
-    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
-    mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncResult<T, R2> : Result<T, R>;
-    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
-    flatMap<Q extends FlatMapFn<T, E, Any, Any> | Task<T, E, Any>>(f: Q): ReturnType<Q>;
-    attemptMap<R>(
-        f: MapFn<T, R>,
-    ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : Result<R, E | unknown>;
-};
-
-export type AsyncResult<T, E> = {
-    value: Promise<Option<T>>;
-    error: Promise<Option<E>>;
-    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncResult<R2, E> : AsyncResult<R, E>;
-    mapError<R>(
-        f: MapFn<E, R>,
-    ): R extends Promise<infer R2> ? AsyncResult<T, R2> : AsyncResult<T, R>;
-    flatMap<T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E2>;
-    attemptMap<R>(
-        f: MapFn<T, R>,
-    ): R extends Promise<infer R2> ? AsyncResult<R2, E | unknown> : AsyncResult<R, E | unknown>;
-} & Omit<Result<T, E>, "value" | "error" | "map" | "mapError" | "flatMap"> &
-    Promise<Result<T, E>>;
+type MakeResultAsync<R extends Result<Any, Any>> = R extends Ok<infer T>
+    ? AsyncOk<T>
+    : R extends Err<infer E>
+    ? AsyncErr<E>
+    : never;
 
 export type Ok<T> = {
     ok: true;
     value: T;
-} & Omit<Result<T, never>, "value">;
+    error: never;
+    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncOk<R2> : Ok<R>;
+    mapError<R>(f: MapFn<never, R>): R extends Promise<Any> ? AsyncOk<T> : Ok<T>;
+    flatMap<R extends Result<Any, Any> | Promise<Result<Any, Any>>>(
+        f: MapFn<T, R>,
+    ): R extends Promise<infer F1>
+        ? F1 extends Result<Any, Any>
+            ? MakeResultAsync<F1>
+            : never
+        : R;
+    attemptMap<R>(
+        f: MapFn<T, R>,
+    ): R extends Promise<infer R2> ? AsyncResult<R2, unknown> : Result<R, unknown>;
+};
 
 export type Err<E> = {
     ok: false;
+    value: never;
     error: E;
-} & Omit<Result<never, E>, "error">;
+    map<R>(f: MapFn<never, R>): Err<E>;
+    mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncErr<R2> : Err<R>;
+    flatMap<R extends Result<Any, Any> | Promise<Result<Any, Any>>>(f: MapFn<never, R>): Err<E>;
+    attemptMap<R>(f: MapFn<never, R>): Err<E>;
+};
+
+export type Result<T, E> = Ok<T> | Err<E>;
 
 export type AsyncOk<T> = {
-    ok: true;
-    value: Promise<Option<T>>;
-} & Omit<AsyncResult<T, never>, "value">;
+    value: Promise<T>;
+    error: Promise<never>;
+    map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncOk<R2> : AsyncOk<R>;
+    mapError<R>(f: MapFn<never, R>): AsyncOk<T>;
+    flatMap<F extends FlatMapFn<T, never, Any, Any>>(
+        f: F,
+    ): ReturnType<F> extends Promise<infer F1>
+        ? F1 extends Result<Any, Any>
+            ? MakeResultAsync<F1>
+            : never
+        : ReturnType<F> extends Result<Any, Any>
+        ? MakeResultAsync<ReturnType<F>>
+        : never;
+    attemptMap<R>(
+        f: MapFn<T, R>,
+    ): R extends Promise<infer R2> ? AsyncResult<R2, unknown> : AsyncResult<R, unknown>;
+} & Promise<Ok<T>>;
 
 export type AsyncErr<E> = {
-    ok: false;
-    error: Promise<Option<E>>;
-} & Omit<AsyncResult<never, E>, "error">;
+    value: Promise<never>;
+    error: Promise<E>;
+    map<R>(f: MapFn<never, R>): AsyncErr<E>;
+    mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncErr<R2> : AsyncErr<R>;
+    flatMap<F extends FlatMapFn<never, never, Any, Any>>(f: F): AsyncErr<E>;
+    attemptMap<R>(f: MapFn<never, R>): AsyncErr<E>;
+} & Promise<Err<E>>;
+
+export type AsyncResult<T, E> = AsyncOk<T> | AsyncErr<E>;
 
 export const promiseOfResultToAsyncResult = <T, E>(
     promise: Promise<Result<T, E>>,
@@ -72,46 +91,46 @@ export const promiseOfResultToAsyncResult = <T, E>(
     promise.map = // Constrain the @ts-ignore to the bare minimum with this comment.
         <R>(f: MapFn<T, R>): AsyncResult<R, E> => {
             const mapped = promise.then((resolved) => {
-                const mapped = resolved.map(f);
+                const mapped = resolved.map(f as Any);
                 return Promise.resolve(mapped);
             });
-            return promiseOfResultToAsyncResult(mapped) as AsyncResult<R, E>;
+            return promiseOfResultToAsyncResult(mapped as Any);
         };
 
     // @ts-ignore
     promise.mapError = // Constrain the @ts-ignore to the bare minimum with this comment.
         <R>(f: MapFn<E, R>): AsyncResult<T, R> => {
             const mapped = promise.then((resolved) => {
-                return resolved.mapError(f);
+                return resolved.mapError(f as Any);
             });
-            // @ts-ignore
-            return promiseOfResultToAsyncResult(mapped) as AsyncResult<T, R>;
+
+            return promiseOfResultToAsyncResult(mapped as Any);
         };
 
     // @ts-ignore
     promise.flatMap = // Constrain the @ts-ignore to the bare minimum with this comment.
-        <T2, E2>(f: FlatMapFn<T, E, T2, E2>): AsyncResult<T2, E | E2> => {
+        <F extends FlatMapFn<T, unknown, Any, Any>>(f: F): Any => {
             const mapped = promise.then((resolved) => {
-                const chained = resolved.flatMap(f);
-                return promiseOfResultToAsyncResult(Promise.resolve(chained));
+                const chained = resolved.flatMap(f as Any);
+                return promiseOfResultToAsyncResult(Promise.resolve(chained)) as Any;
             });
-            return promiseOfResultToAsyncResult(mapped);
+            return promiseOfResultToAsyncResult(mapped as Any);
         };
 
     // @ts-ignore
     promise.attemptMap = // Constrain the @ts-ignore to the bare minimum with this comment.
         <R>(f: MapFn<T, R>): AsyncResult<R, E | unknown> => {
             const mapped = promise.then((resolved) => {
-                const mapped = resolved.attemptMap(f);
+                const mapped = resolved.attemptMap(f as Any);
                 return Promise.resolve(mapped);
             });
-            return promiseOfResultToAsyncResult(mapped) as AsyncResult<R, E | unknown>;
+            return promiseOfResultToAsyncResult(mapped as Any);
         };
 
     return promise as AsyncResult<T, E>;
 };
 
-export const Ok = <T>(value: T): Result<T, never> => {
+export const Ok = <T>(value: T): Ok<T> => {
     const result = {
         ok: true,
         value,
@@ -155,20 +174,21 @@ export const Ok = <T>(value: T): Result<T, never> => {
             }
         },
     });
-    return result as Result<T, never>;
+    return result as Ok<T>;
 };
 
-export const Err = <E>(error: E): Result<never, E> => {
+export const Err = <E>(error: E): Err<E> => {
     const err = {
-        ok: false,
+        ok: false as const,
         value: undefined as never,
         error,
     };
 
     // We don't want functions to be members of the Err instance.
     Object.setPrototypeOf(err, {
-        map: () => Err(error) as Any,
-        mapError: <R>(f: MapFn<E, R> | AsyncMapFn<E, R>): Any => {
+        map: () => Err(error),
+        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+        mapError: <R>(f: MapFn<E, R>) => {
             const newValue = f(error);
 
             const err =
@@ -176,16 +196,16 @@ export const Err = <E>(error: E): Result<never, E> => {
                     ? AsyncErr(newValue)
                     : Err(newValue);
             err.mapError = (): Any => err;
-            return err;
+            return err as Any;
         },
         flatMap: () => Err(error) as Any,
         attemptMap: () => Err(error) as Any,
     });
 
-    return err as Result<never, E>;
+    return err as Err<E>;
 };
 
-export const AsyncOk = <T>(value: T | Promise<T>): AsyncResult<T, never> => {
+export const AsyncOk = <T>(value: T | Promise<T>): AsyncOk<T> => {
     const resultPromise = Promise.resolve(value).then((resolvedValue) => {
         const result: Result<T, never> = Ok(resolvedValue);
         return result;
@@ -194,7 +214,7 @@ export const AsyncOk = <T>(value: T | Promise<T>): AsyncResult<T, never> => {
     return promiseOfResultToAsyncResult(resultPromise) as AsyncOk<T>;
 };
 
-export const AsyncErr = <E>(error: E | Promise<E>): AsyncResult<never, E> => {
+export const AsyncErr = <E>(error: E | Promise<E>): AsyncErr<E> => {
     const resultPromise = Promise.resolve(error).then((resolvedError) => {
         const result: Result<never, E> = Err(resolvedError);
         return result;

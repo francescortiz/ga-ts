@@ -1,11 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
 import { inspect } from "util";
 import { crash } from "./crash";
-import { AsyncOk, AsyncResult, Ok, Result } from "./result";
+import { AsyncOk, AsyncResult, Ok } from "./result";
 
 describe("other tests", () => {
     it("runs readme code", async () => {
-        const firstOne: Result<number, Error> = Ok(1);
+        const firstOne = Ok(1);
 
         {
             const randomPicAsyncResult: AsyncResult<string, Error> = firstOne
@@ -28,11 +28,11 @@ describe("other tests", () => {
         }
     });
     it("runs readme code on error", async () => {
-        const firstOne: Result<number, Error> = Ok(1);
-        const secondOne: AsyncResult<number, Error> = AsyncOk(Promise.resolve(2));
+        const firstOne = Ok(1);
+        const secondOne = AsyncOk(Promise.resolve(2));
 
         {
-            const randomPicAsyncResult: AsyncResult<string, Error> = firstOne
+            const randomPicAsyncResult = firstOne
                 .map((x) => Math.floor(x * 100)) // -> Sync
                 .attemptMap((x) => (x === 200 ? crash("One is not allowed.") : x)) // -> Sync
                 .mapError(async (error_) => {
@@ -51,7 +51,7 @@ describe("other tests", () => {
             expect(randomPicResult.value).toEqual("100 loco");
         }
         {
-            const randomPicAsyncResult: AsyncResult<string, Error> = secondOne
+            const randomPicAsyncResult = secondOne
                 .map((x) => Math.floor(x * 100)) // -> Sync
                 .attemptMap((x) => (x === 200 ? crash("One is not allowed.") : x)) // -> Sync
                 .mapError(async (error_) => {
@@ -72,7 +72,7 @@ describe("other tests", () => {
             );
         }
         {
-            const randomPicAsyncResult: AsyncResult<string, Error> = secondOne
+            const randomPicAsyncResult = secondOne
                 .map((x) => Math.floor(x * 100)) // -> Sync
                 .attemptMap(() => Promise.reject("failing promise")) // -> Sync
                 .mapError(async (error_) => {

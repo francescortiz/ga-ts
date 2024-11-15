@@ -1,54 +1,5 @@
 {
-    "exclude": ["node_modules", "dist", "./**/*.t.ts", "./**/*.mjs", "jest.config.ts", "./**/*.spec.ts"],
-    "compilerOptions": {
-        "outDir": "./dist",
-        "baseUrl": ".",
-        "rootDir": "src",
-        "incremental": true,
-        /* Enable incremental compilation */
-        "composite": false,
-        /* Enable constraints that allow a TypeScript project to be used with project references. */
-        //
-        "strict": true,
-        "sourceMap": true,
-        "allowSyntheticDefaultImports": true,
-        //
-        // ESM
-        "esModuleInterop": true,
-        //
-        // Code quality
-        "allowUnreachableCode": false,
-        "alwaysStrict": true,
-        "exactOptionalPropertyTypes": false, // This breaks opentelemetry
-        "forceConsistentCasingInFileNames": true,
-        "importsNotUsedAsValues": "remove",
-        "noFallthroughCasesInSwitch": true,
-        "noErrorTruncation": true,
-        "noImplicitAny": true,
-        "noImplicitOverride": true,
-        "noImplicitReturns": true,
-        "noEmitOnError": true,
-        "noImplicitThis": true,
-        "noPropertyAccessFromIndexSignature": false,
-        "noUncheckedIndexedAccess": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "preserveConstEnums": true,
-        "pretty": true,
-        "removeComments": true,
-        "resolveJsonModule": true,
-        "strictBindCallApply": true,
-        "strictFunctionTypes": true,
-        "strictNullChecks": true,
-        "strictPropertyInitialization": true,
-        "useUnknownInCatchVariables": true,
-        //
-        // Target
-        "target": "ES2022",
-        "moduleResolution": "Node",
-        /* Modules */
-        "module": "CommonJS",
-        "lib": ["ESNext"],
-        "types": ["node"]
-    }
+
+  "extends": "./tsconfig.base.json",
+  "include": ["src/**/*"]
 }
