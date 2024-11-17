@@ -1,7 +1,8 @@
+/* eslint-disable no-constant-condition */
 import { describe, expect, it } from "@jest/globals";
 import { inspect } from "util";
 import { crash } from "./crash";
-import { AsyncOk, AsyncResult, Ok } from "./result";
+import { AsyncOk, AsyncResult, Err, Ok } from "./result";
 
 describe("other tests", () => {
     it("runs readme code", async () => {
@@ -92,5 +93,31 @@ describe("other tests", () => {
                 "'Failed to fetch: failing promise'",
             );
         }
+    });
+
+    describe("Advanced type tests", () => {
+        it("Map with async callback", async () => {
+            const start = -1 > 0 ? Ok(2) : Err("whatever");
+            const result = await start // Ok<number> | Err<number>
+                .map((x) => x) // Ok<number> | Err<string>
+                .mapError((_e) => "custom error string") // Ok<number> | Err<string>
+                .map((x) => Promise.resolve(x)) // Err<string> | AsyncOk<number>
+                .mapError((_x) => 4); // AsyncOk<number> | Err<number>
+
+            expect(result.ok).toEqual(false);
+            expect(result.error).toEqual(4);
+        });
+
+        it("Attemptmap with async callback", async () => {
+            const start = 1 > 0 ? Ok(2) : Err("whatever");
+            const result = await start // Ok<number> | Err<number>
+                .map((x) => x) // Ok<number> | Err<string>
+                .mapError((_e) => "custom error string") // Ok<number> | Err<string>
+                .attemptMap((x) => Promise.resolve(x)) // Err<string> | AsyncResult<number, unknown>
+                .mapError((_x) => 4); // AsyncOk<number> | Err<number>
+
+            expect(result.ok).toEqual(true);
+            expect(result.value).toEqual(2);
+        });
     });
 });
