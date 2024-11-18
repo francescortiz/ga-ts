@@ -36,7 +36,7 @@ export type Err<E> = {
     error: E;
     map<R>(f: MapFn<never, R>): Err<E>;
     mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncErr<R2> : Err<R>;
-    flatMap<R extends Result<Any, Any> | Promise<Result<Any, Any>>>(f: MapFn<never, R>): Err<E>;
+    flatMap: never;
     attemptMap<R>(f: MapFn<never, R>): Err<E>;
 };
 
@@ -47,14 +47,14 @@ export type AsyncOk<T> = {
     error: Promise<never>;
     map<R>(f: MapFn<T, R>): R extends Promise<infer R2> ? AsyncOk<R2> : AsyncOk<R>;
     mapError<R>(f: MapFn<never, R>): AsyncOk<T>;
-    flatMap<F extends FlatMapFn<T, never, Any, Any>>(
-        f: F,
-    ): ReturnType<F> extends Promise<infer F1>
+    flatMap<R extends Result<Any, Any> | Promise<Result<Any, Any>>>(
+        f: MapFn<T, R>,
+    ): R extends Promise<infer F1>
         ? F1 extends Result<Any, Any>
             ? MakeResultAsync<F1>
             : never
-        : ReturnType<F> extends Result<Any, Any>
-        ? MakeResultAsync<ReturnType<F>>
+        : R extends Result<Any, Any>
+        ? MakeResultAsync<R>
         : never;
     attemptMap<R>(
         f: MapFn<T, R>,
@@ -66,7 +66,7 @@ export type AsyncErr<E> = {
     error: Promise<E>;
     map<R>(f: MapFn<never, R>): AsyncErr<E>;
     mapError<R>(f: MapFn<E, R>): R extends Promise<infer R2> ? AsyncErr<R2> : AsyncErr<R>;
-    flatMap<F extends FlatMapFn<never, never, Any, Any>>(f: F): AsyncErr<E>;
+    flatMap: never;
     attemptMap<R>(f: MapFn<never, R>): AsyncErr<E>;
 } & Promise<Err<E>>;
 
