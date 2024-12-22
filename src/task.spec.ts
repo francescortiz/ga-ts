@@ -13,7 +13,7 @@ describe("Task", () => {
         const start = Ok({ numerator: 2n, denominator: 0n });
 
         const task = Task(division, (err: unknown) =>
-            err instanceof RangeError ? Err("Division by zero!") : crash(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = start.flatMap(task);
@@ -27,7 +27,7 @@ describe("Task", () => {
         const start = AsyncOk(Promise.resolve({ numerator: 2n, denominator: 0n }));
 
         const task = Task(division, (err: unknown) =>
-            err instanceof RangeError ? Err("Division by zero!") : crash(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = start.flatMap(task);
@@ -63,7 +63,7 @@ describe("Task", () => {
         const start = Ok({ numerator: 2n, denominator: 2n });
 
         const task = Task(asyncDivision, (err: unknown) =>
-            err instanceof RangeError ? Err("Division by zero!") : crash(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = await start.flatMap(task);
@@ -71,7 +71,7 @@ describe("Task", () => {
         expect(result.value).toBe(1n);
         expect(result.error).toBeUndefined();
     });
-    it("task and function throws", async () => {
+    it("task and async function throws", async () => {
         const asyncDivision = async ({
             numerator,
             denominator,
@@ -83,7 +83,7 @@ describe("Task", () => {
         const start = Ok({ numerator: 2n, denominator: 0n });
 
         const task = Task(asyncDivision, (err: unknown) =>
-            err instanceof RangeError ? Err("Division by zero!") : crash(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = await start.flatMap(task);
