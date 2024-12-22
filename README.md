@@ -106,5 +106,5 @@ const error = await randomPicAsyncResult.error; // -> Option<string | Error | un
 ## Roadmap
 
 -   [x] Add `Task`.
--   [ ] Add `Option` tests.
+-   [x] Add `Option` tests.
 -   [ ] Research what other methods to implement.

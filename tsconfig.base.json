@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    /* Base Options */
+    "baseUrl": ".",
+    "rootDir": "src",
+    "incremental": true,
+    "composite": false,
+
+    /* Code Quality */
+    "strict": true,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowUnreachableCode": false,
+    "alwaysStrict": true,
+    "exactOptionalPropertyTypes": false, // This breaks OpenTelemetry
+    "forceConsistentCasingInFileNames": true,
+    "importsNotUsedAsValues": "remove",
+    "noFallthroughCasesInSwitch": true,
+    "noErrorTruncation": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "preserveConstEnums": true,
+    "pretty": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+
+    /* Target and Module */
+    "target": "ES2022",
+    "moduleResolution": "Node",
+    "module": "CommonJS",
+    "lib": ["ESNext"],
+    "types": ["node"]
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "./**/*.t.ts",
+    "./**/*.mjs",
+  ]
+}

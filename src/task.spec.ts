@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { describe, expect, it } from "@jest/globals";
 import { inspect } from "util";
 import { crash } from "./crash";
@@ -12,9 +13,7 @@ describe("Task", () => {
         const start = Ok({ numerator: 2n, denominator: 0n });
 
         const task = Task(division, (err: unknown) =>
-            err instanceof RangeError
-                ? Err("Division by zero!")
-                : crash<Result<never, string>>(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = start.flatMap(task);
@@ -28,9 +27,7 @@ describe("Task", () => {
         const start = AsyncOk(Promise.resolve({ numerator: 2n, denominator: 0n }));
 
         const task = Task(division, (err: unknown) =>
-            err instanceof RangeError
-                ? Err("Division by zero!")
-                : crash<Result<never, string>>(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = start.flatMap(task);
@@ -39,16 +36,14 @@ describe("Task", () => {
 
         expect(awaited.error).toBe("Division by zero!");
     });
-    it("task and function returns", async () => {
+    it("task and function returns", () => {
         const division = ({ numerator, denominator }: { numerator: bigint; denominator: bigint }) =>
             numerator / denominator;
 
         const start = Ok({ numerator: 2n, denominator: 2n });
 
         const task = Task(division, (err: unknown) =>
-            err instanceof RangeError
-                ? Err("Division by zero!")
-                : crash<Result<never, string>>(err),
+            err instanceof RangeError ? Err("Division by zero!") : crash(err),
         );
 
         const result = start.flatMap(task);
@@ -68,9 +63,7 @@ describe("Task", () => {
         const start = Ok({ numerator: 2n, denominator: 2n });
 
         const task = Task(asyncDivision, (err: unknown) =>
-            err instanceof RangeError
-                ? Err("Division by zero!")
-                : crash<Result<never, string>>(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = await start.flatMap(task);
@@ -78,7 +71,7 @@ describe("Task", () => {
         expect(result.value).toBe(1n);
         expect(result.error).toBeUndefined();
     });
-    it("task and function throws", async () => {
+    it("task and async function throws", async () => {
         const asyncDivision = async ({
             numerator,
             denominator,
@@ -90,9 +83,7 @@ describe("Task", () => {
         const start = Ok({ numerator: 2n, denominator: 0n });
 
         const task = Task(asyncDivision, (err: unknown) =>
-            err instanceof RangeError
-                ? Err("Division by zero!")
-                : crash<Result<never, string>>(err),
+            err instanceof RangeError ? "Division by zero!" : crash(err),
         );
 
         const result = await start.flatMap(task);
