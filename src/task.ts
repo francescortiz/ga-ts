@@ -1,25 +1,25 @@
 import { Any, MapFn } from "./types";
-import { AsyncResult, Ok, promiseOfResultToAsyncResult, Result } from "./result";
+import { AsyncResult, Err, Ok, promiseOfResultToAsyncResult, Result } from "./result";
 
 export type Task<T, E, R> = (
     v: T,
 ) => R extends Promise<infer R2> ? AsyncResult<R2, E> : Result<R, E>;
 
-export const Task = <T, E, R>(
-    f: MapFn<T, R>,
-    errorHandler: MapFn<unknown, Result<never, E>>,
-): Task<T, E, R> => {
-    return (value: T) => {
+export const Task = <Params, Error, OutputType>(
+    f: MapFn<Params, OutputType>,
+    errorHandler: MapFn<unknown, Error>,
+): Task<Params, Error, OutputType> => {
+    return (value: Params) => {
         try {
             const newValue = f(value);
 
             return newValue instanceof Promise //
                 ? promiseOfResultToAsyncResult(
-                      newValue.then((resolved) => Ok(resolved)).catch((e) => errorHandler(e)),
+                      newValue.then((resolved) => Ok(resolved)).catch((e) => Err(errorHandler(e))),
                   )
                 : (Ok(newValue) as Any);
         } catch (e) {
-            return errorHandler(e);
+            return Err(errorHandler(e));
         }
     };
 };
