@@ -6,11 +6,8 @@ export type FlatMapFn<T, E, T2, E2> = (
     value: T,
 ) => Result<T2, E | E2> | Promise<Result<T2, E | E2>>;
 
-type MakeResultAsync<R extends Result<Any, Any>> = R extends Ok<infer T>
-    ? AsyncOk<T>
-    : R extends Err<infer E>
-    ? AsyncErr<E>
-    : never;
+type MakeResultAsync<R extends Result<Any, Any>> =
+    R extends Ok<infer T> ? AsyncOk<T> : R extends Err<infer E> ? AsyncErr<E> : never;
 
 export type Ok<T> = {
     ok: true;
@@ -54,8 +51,8 @@ export type AsyncOk<T> = {
             ? MakeResultAsync<F1>
             : never
         : R extends Result<Any, Any>
-        ? MakeResultAsync<R>
-        : never;
+          ? MakeResultAsync<R>
+          : never;
     attemptMap<R>(
         f: MapFn<T, R>,
     ): R extends Promise<infer R2> ? AsyncResult<R2, unknown> : AsyncResult<R, unknown>;
