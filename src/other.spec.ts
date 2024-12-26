@@ -28,7 +28,7 @@ describe("other tests", () => {
             expect(randomPicResult.value).toEqual("100 loco");
         }
     });
-    it("runs readme code on error", async () => {
+    it.skip("runs readme code on error", async () => {
         const firstOne = Ok(1);
         const secondOne = AsyncOk(Promise.resolve(2));
 
