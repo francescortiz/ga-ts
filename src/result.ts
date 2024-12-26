@@ -72,17 +72,20 @@ export type AsyncResult<T, E> = AsyncOk<T> | AsyncErr<E>;
 export const promiseOfResultToAsyncResult = <T, E>(
     promise: Promise<Result<T, E>>,
 ): AsyncResult<T, E> => {
-    // @ts-ignore
-    promise.ok = // Constrain the @ts-ignore to the bare minimum with this comment.
-        promise.then((resolved) => resolved.ok);
+    if (!("ok" in promise))
+        void Object.defineProperty(promise, "ok", {
+            get: () => promise.then((resolved) => resolved.ok),
+        });
 
-    // @ts-ignore
-    promise.value = // Constrain the @ts-ignore to the bare minimum with this comment.
-        promise.then((resolved) => (resolved.ok ? Some(resolved.value) : None));
+    if (!("value" in promise))
+        void Object.defineProperty(promise, "value", {
+            get: () => promise.then((resolved) => (resolved.ok ? Some(resolved.value) : None)),
+        });
 
-    // @ts-ignore
-    promise.error = // Constrain the @ts-ignore to the bare minimum with this comment.
-        promise.then((resolved) => (!resolved.ok ? Some(resolved.error) : None));
+    if (!("error" in promise))
+        void Object.defineProperty(promise, "error", {
+            get: () => promise.then((resolved) => (!resolved.ok ? Some(resolved.error) : None)),
+        });
 
     // @ts-ignore
     promise.map = // Constrain the @ts-ignore to the bare minimum with this comment.
@@ -109,7 +112,7 @@ export const promiseOfResultToAsyncResult = <T, E>(
         <F extends FlatMapFn<T, unknown, Any, Any>>(f: F): Any => {
             const mapped = promise.then((resolved) => {
                 const chained = resolved.flatMap(f as Any);
-                return promiseOfResultToAsyncResult(Promise.resolve(chained)) as Any;
+                return Promise.resolve(chained) as Any;
             });
             return promiseOfResultToAsyncResult(mapped as Any);
         };
