@@ -2,7 +2,7 @@
 /* eslint-disable no-constant-condition */
 import { describe, expect, it } from "@jest/globals";
 import { Option, Result, Some } from "..";
-import { Err, Ok } from "../result";
+import { Err, Ok, wrap } from "../result";
 import { Task } from "../task";
 
 describe("Clean architecture controller", () => {
@@ -13,7 +13,7 @@ describe("Clean architecture controller", () => {
     type Entity = { id: number };
 
     // Repository
-    const getEntities = ({ id }: { id: number }) => {
+    const getEntities = wrap(async ({ id }: { id: number }) => {
         const getRowsFromDatabase = ({ id }: { id: number }) => {
             if (id) return Promise.resolve({ id } as Entity);
             else return Promise.reject(new DbError());
@@ -26,8 +26,8 @@ describe("Clean architecture controller", () => {
             idDto: e.id,
         });
 
-        return getRowsTask({ id }).map(mapEntityToDto);
-    };
+        return await getRowsTask({ id }).map(mapEntityToDto);
+    });
 
     // Use case
     class IdNotValidError extends Error {}

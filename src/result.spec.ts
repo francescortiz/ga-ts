@@ -3,7 +3,7 @@
 /* eslint-disable no-constant-condition */
 import { describe, expect, it } from "@jest/globals";
 import { None, Some } from "./option";
-import { AsyncErr, AsyncOk, AsyncResult, Err, Ok, Result } from "./result";
+import { AsyncErr, AsyncOk, AsyncResult, Err, Ok, Result, wrap } from "./result";
 
 describe("Result", () => {
     describe("map", () => {
@@ -233,6 +233,19 @@ describe("Result", () => {
             expect(resultResolved.ok).toBe(true);
             expect(resultResolved.error).toEqual(undefined);
             expect(resultResolved.value).toEqual(16);
+        });
+    });
+
+    describe("Wrap", () => {
+        it("Should wrap correctly", async () => {
+            const asyncSum2 = wrap(async (n: number) => {
+                await Promise.resolve();
+                return Ok(n + 2);
+            });
+
+            const result = await asyncSum2(2).map((x) => x + 2);
+
+            expect(result.value).toEqual(6);
         });
     });
 });
