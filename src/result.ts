@@ -68,24 +68,26 @@ export type AsyncErr<E> = {
 } & Promise<Err<E>>;
 
 export type AsyncResult<T, E> = AsyncOk<T> | AsyncErr<E>;
+const asyncResultSymbol = Symbol("AsyncResult");
 
 export const promiseOfResultToAsyncResult = <T, E>(
     promise: Promise<Result<T, E>>,
 ): AsyncResult<T, E> => {
-    if (!("ok" in promise))
+    if (!(asyncResultSymbol in promise)) {
+        void Object.defineProperty(promise, asyncResultSymbol, { value: true, enumerable: false });
+
         void Object.defineProperty(promise, "ok", {
             get: () => promise.then((resolved) => resolved.ok),
         });
 
-    if (!("value" in promise))
         void Object.defineProperty(promise, "value", {
             get: () => promise.then((resolved) => (resolved.ok ? Some(resolved.value) : None)),
         });
 
-    if (!("error" in promise))
         void Object.defineProperty(promise, "error", {
             get: () => promise.then((resolved) => (!resolved.ok ? Some(resolved.error) : None)),
         });
+    }
 
     // @ts-ignore
     promise.map = // Constrain the @ts-ignore to the bare minimum with this comment.
