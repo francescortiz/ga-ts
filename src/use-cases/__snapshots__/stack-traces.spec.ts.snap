@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Stack traces Should create correct stack trace in async context: The last line should come from createTransaction 1`] = `
+"Error: With context: 2
+at ga-ts/src/use-cases/stack-traces.spec.ts:29:24
+at async getStack (ga-ts/src/use-cases/stack-traces.spec.ts:27:20)
+at async createContext (ga-ts/src/use-cases/stack-traces.spec.ts:15:20)
+at async createTransaction (ga-ts/src/use-cases/stack-traces.spec.ts:21:20)
+at async Object.<anonymous> (ga-ts/src/use-cases/stack-traces.spec.ts:32:24)"
+`;

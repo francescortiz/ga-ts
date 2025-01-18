@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable no-constant-condition */
 import { describe, expect, it } from "@jest/globals";
 import { Option, Result, Some } from "..";
 import { Err, Ok, wrap } from "../result";
